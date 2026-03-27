@@ -35,9 +35,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-slate-900 flex-col justify-between p-12">
-        <div className="flex items-center gap-3">
-          <Image src="/lastro-logo.png" alt="Lastro" width={40} height={40} className="rounded-xl" />
-          <span className="text-xl font-bold text-white">Lastro</span>
+        <div className="flex items-center">
+          <Image src="/lastro-logo.png" alt="Lastro" width={180} height={50} className="object-contain object-left" priority />
         </div>
         <div>
           <h2 className="text-4xl font-bold text-white leading-tight">
@@ -69,9 +68,8 @@ export default function LoginPage() {
       {/* Right panel */}
       <div className="flex flex-1 flex-col items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md">
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <Image src="/lastro-logo.png" alt="Lastro" width={32} height={32} className="rounded-lg" />
-            <span className="text-lg font-bold">Lastro</span>
+          <div className="flex items-center mb-8 lg:hidden">
+            <Image src="/lastro-logo.png" alt="Lastro" width={130} height={36} className="object-contain object-left" priority />
           </div>
 
           <h1 className="text-2xl font-bold text-slate-900">Bem-vindo de volta</h1>

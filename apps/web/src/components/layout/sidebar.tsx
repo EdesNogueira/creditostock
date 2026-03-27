@@ -45,18 +45,19 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
       mobile ? 'w-72' : 'w-60',
     )}>
       {/* Logo section */}
-      <div className="flex h-16 items-center justify-between px-4 border-b border-white/[0.06]">
-        <Link href="/dashboard" className="flex items-center justify-center group">
+      <div className="flex h-16 items-center justify-between px-5 border-b border-white/[0.06]">
+        <Link href="/dashboard" className="flex items-center group flex-1 min-w-0">
           <Image
             src="/lastro-logo.png"
             alt="Lastro"
-            width={42}
-            height={42}
-            className="rounded-xl opacity-90 group-hover:opacity-100 transition-opacity"
+            width={148}
+            height={40}
+            className="object-contain object-left opacity-90 group-hover:opacity-100 transition-opacity max-w-full"
+            priority
           />
         </Link>
         {mobile && onClose && (
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="ml-2 flex-shrink-0 p-1.5 rounded-lg text-slate-400 hover:bg-white/10 transition-colors">
             <X className="h-4 w-4" />
           </button>
         )}
