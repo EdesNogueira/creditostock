@@ -1,4 +1,6 @@
 'use client';
+import { useState } from 'react';
+import { Info } from 'lucide-react';
 
 interface HelpTooltipProps {
   text: string;
@@ -6,15 +8,29 @@ interface HelpTooltipProps {
 }
 
 export function HelpTooltip({ text, className = '' }: HelpTooltipProps) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <span className={`relative group inline-flex cursor-help ${className}`}>
-      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors">
-        ?
-      </span>
-      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs text-white bg-slate-800 rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none whitespace-normal min-w-[200px] max-w-[280px] text-center leading-relaxed">
-        {text}
-        <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
-      </span>
+    <span className={`relative inline-flex ${className}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-slate-200/80 text-slate-500 hover:bg-blue-100 hover:text-blue-600 transition-colors cursor-help"
+        aria-label="Mais informações"
+      >
+        <Info className="w-2.5 h-2.5" />
+      </button>
+      {open && (
+        <span
+          className="absolute z-[100] left-1/2 -translate-x-1/2 bottom-[calc(100%+6px)] w-64 rounded-xl bg-slate-900 text-white text-xs px-3 py-2.5 shadow-2xl leading-relaxed pointer-events-none"
+          role="tooltip"
+        >
+          {text}
+          <span className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-slate-900" />
+        </span>
+      )}
     </span>
   );
 }
