@@ -21,9 +21,9 @@ interface Issue {
 }
 
 const severityBadge = (s: string) => {
-  const map: Record<string, 'critical' | 'destructive' | 'warning' | 'info'> = {
+  const map: Record<string, 'critical' | 'high' | 'warning' | 'info'> = {
     CRITICAL: 'critical',
-    HIGH: 'destructive',
+    HIGH: 'high',
     MEDIUM: 'warning',
     LOW: 'info',
   };

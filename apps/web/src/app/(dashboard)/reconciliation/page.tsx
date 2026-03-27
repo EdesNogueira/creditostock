@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { SnapshotSelector } from '@/components/snapshot-selector';
+import { HelpTooltip } from '@/components/help-tooltip';
 import { reconciliationApi } from '@/lib/api';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
 
@@ -31,8 +32,8 @@ const matchTypeBadge = (type: string) => {
   const map: Record<string, { label: string; variant: 'success' | 'info' | 'warning' | 'outline' }> = {
     EXACT_SKU: { label: 'SKU Exato', variant: 'success' },
     EXACT_EAN: { label: 'EAN Exato', variant: 'success' },
-    ALIAS: { label: 'Alias', variant: 'info' },
-    FUZZY_DESCRIPTION_NCM: { label: 'Fuzzy', variant: 'warning' },
+    ALIAS: { label: 'Por Alias', variant: 'info' },
+    FUZZY_DESCRIPTION_NCM: { label: 'Aproximado (Desc+NCM)', variant: 'warning' },
     MANUAL: { label: 'Manual', variant: 'outline' },
   };
   const m = map[type] ?? { label: type, variant: 'outline' as const };
@@ -179,7 +180,10 @@ export default function ReconciliationPage() {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Qtd</TableHead>
                   <TableHead>Custo Total</TableHead>
-                  <TableHead>Tipo de Match</TableHead>
+                  <TableHead className="flex items-center gap-1">
+                    Tipo de Vínculo
+                    <HelpTooltip text="SKU Exato: código idêntico ao da NF-e. EAN Exato: código de barras idêntico. Por Alias: encontrado via código alternativo. Aproximado (Desc+NCM): descrição similar + mesmo NCM — requer revisão." />
+                  </TableHead>
                   <TableHead>Confiança</TableHead>
                   <TableHead>ICMS Alocado</TableHead>
                   <TableHead>Pendências</TableHead>

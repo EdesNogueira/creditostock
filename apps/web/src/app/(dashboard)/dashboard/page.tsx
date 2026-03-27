@@ -218,24 +218,26 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick access */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Status do Sistema</CardTitle>
+            <CardTitle className="text-base">Acesso Rápido</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: 'API', status: 'online', color: 'success' },
-                { label: 'Worker', status: 'online', color: 'success' },
-                { label: 'Redis', status: 'online', color: 'success' },
-                { label: 'Storage', status: 'online', color: 'success' },
-              ].map((s) => (
-                <div key={s.label} className="flex items-center gap-2 rounded-md border p-3">
-                  <div className="h-2 w-2 rounded-full bg-green-500" />
-                  <span className="text-sm font-medium">{s.label}</span>
-                  <Badge variant="success" className="ml-auto text-xs">{s.status}</Badge>
-                </div>
+                { label: 'Importar Estoque', href: '/stock', color: 'bg-blue-50 border-blue-200 text-blue-700' },
+                { label: 'Importar NF-e', href: '/nfe', color: 'bg-green-50 border-green-200 text-green-700' },
+                { label: 'Executar Conciliação', href: '/reconciliation', color: 'bg-purple-50 border-purple-200 text-purple-700' },
+                { label: 'Gerar Dossiê', href: '/dossiers', color: 'bg-orange-50 border-orange-200 text-orange-700' },
+              ].map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className={`flex items-center justify-center text-center text-sm font-medium rounded-lg border p-4 hover:opacity-80 transition-opacity cursor-pointer ${item.color}`}
+                >
+                  {item.label}
+                </a>
               ))}
             </div>
           </CardContent>

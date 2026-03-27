@@ -9,7 +9,7 @@ export const api = axios.create({
 
 if (typeof window !== 'undefined') {
   api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('creditostock_token');
+    const token = localStorage.getItem('lastro_token') || localStorage.getItem('creditostock_token');
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   });
@@ -18,6 +18,7 @@ if (typeof window !== 'undefined') {
     (res) => res,
     (err) => {
       if (err.response?.status === 401 && window.location.pathname !== '/login') {
+        localStorage.removeItem('lastro_token');
         localStorage.removeItem('creditostock_token');
         window.location.href = '/login';
       }
@@ -66,6 +67,8 @@ export const productsApi = {
   list: (companyId?: string, search?: string) =>
     api.get('/products', { params: { companyId, search } }).then((r) => r.data),
   get: (id: string) => api.get(`/products/${id}`).then((r) => r.data),
+  create: (data: unknown) => api.post('/products', data).then((r) => r.data),
+  update: (id: string, data: unknown) => api.put(`/products/${id}`, data).then((r) => r.data),
   createAlias: (productId: string, data: unknown) =>
     api.post(`/products/${productId}/aliases`, data).then((r) => r.data),
   deleteAlias: (aliasId: string) => api.delete(`/products/aliases/${aliasId}`).then((r) => r.data),

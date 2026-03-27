@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { ProductsService } from './products.service';
@@ -24,6 +24,9 @@ export class ProductsController {
 
   @Post()
   create(@Body() dto: CreateProductDto) { return this.service.create(dto); }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() dto: Partial<CreateProductDto>) { return this.service.update(id, dto); }
 
   @Post(':id/aliases')
   createAlias(@Param('id') id: string, @Body() dto: CreateProductAliasDto) {

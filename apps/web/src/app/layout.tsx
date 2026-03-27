@@ -5,7 +5,7 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CreditoStock — Rastreabilidade Fiscal de Estoque',
+  title: 'Lastro — Rastreabilidade Fiscal de Estoque',
   description: 'Plataforma de rastreabilidade fiscal de estoque e composição de créditos de ICMS',
 };
 

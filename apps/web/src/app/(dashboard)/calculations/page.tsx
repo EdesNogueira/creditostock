@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BranchSelector } from '@/components/branch-selector';
 import { SnapshotSelector } from '@/components/snapshot-selector';
+import { HelpTooltip } from '@/components/help-tooltip';
 import { calculationsApi } from '@/lib/api';
 import { formatCurrency, formatDate, formatPercent } from '@/lib/utils';
 
@@ -99,7 +100,10 @@ export default function CalculationsPage() {
                 <SnapshotSelector value={snapshotId} onChange={setSnapshotId} branchId={branchId} placeholder="Último snapshot disponível" />
               </div>
               <div className="space-y-2">
-                <Label>Modo de Cálculo</Label>
+                <Label className="flex items-center gap-1">
+                  Modo de Cálculo
+                  <HelpTooltip text="Assistido: calcula com pendências sinalizadas (recomendado). Estrito: só calcula itens com lastro documental 100% completo. Simulação: estima o crédito máximo possível antes da revisão final." />
+                </Label>
                 <select
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={mode}

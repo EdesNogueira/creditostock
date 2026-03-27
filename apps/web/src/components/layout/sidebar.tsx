@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import {
   LayoutDashboard, Building2, Package, FileSpreadsheet,
   FileText, GitMerge, AlertCircle, Calculator,
@@ -28,19 +29,23 @@ export function Sidebar() {
   const pathname = usePathname();
 
   const handleLogout = () => {
-    localStorage.removeItem('creditostock_token');
+    localStorage.removeItem('lastro_token');
     window.location.href = '/login';
   };
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-slate-900 text-white">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b border-slate-700 px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500">
-          <Package className="h-5 w-5 text-white" />
-        </div>
+      <div className="flex h-16 items-center gap-2 border-b border-slate-700 px-5">
+        <Image
+          src="/lastro-logo.png"
+          alt="Lastro"
+          width={32}
+          height={32}
+          className="rounded-lg flex-shrink-0"
+        />
         <div>
-          <p className="text-sm font-bold leading-none">CreditoStock</p>
+          <p className="text-sm font-bold leading-none">Lastro</p>
           <p className="text-xs text-slate-400">Rastreabilidade Fiscal</p>
         </div>
       </div>

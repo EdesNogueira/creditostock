@@ -92,8 +92,8 @@ const matchTypeBadge = (type: string) => {
   const map: Record<string, { label: string; variant: 'success' | 'info' | 'warning' | 'outline' }> = {
     EXACT_SKU: { label: 'SKU Exato', variant: 'success' },
     EXACT_EAN: { label: 'EAN Exato', variant: 'success' },
-    ALIAS: { label: 'Alias', variant: 'info' },
-    FUZZY_DESCRIPTION_NCM: { label: 'Fuzzy NCM+Desc', variant: 'warning' },
+    ALIAS: { label: 'Por Alias', variant: 'info' },
+    FUZZY_DESCRIPTION_NCM: { label: 'Aproximado (Desc+NCM)', variant: 'warning' },
     MANUAL: { label: 'Manual', variant: 'outline' },
   };
   const m = map[type] ?? { label: type, variant: 'outline' as const };

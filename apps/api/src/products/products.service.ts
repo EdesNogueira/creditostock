@@ -39,6 +39,20 @@ export class ProductsService {
     return this.prisma.product.create({ data: dto });
   }
 
+  async update(id: string, dto: Partial<CreateProductDto>) {
+    await this.findOne(id);
+    return this.prisma.product.update({
+      where: { id },
+      data: {
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.ean !== undefined && { ean: dto.ean }),
+        ...(dto.ncm !== undefined && { ncm: dto.ncm }),
+        ...(dto.unit !== undefined && { unit: dto.unit }),
+      },
+      include: { aliases: true },
+    });
+  }
+
   async createAlias(productId: string, dto: CreateProductAliasDto) {
     await this.findOne(productId);
     return this.prisma.productAlias.create({ data: { ...dto, productId } });

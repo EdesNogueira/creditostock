@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, Eye, EyeOff, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +10,7 @@ import { authApi } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@creditostock.com.br');
+  const [email, setEmail] = useState('admin@lastro.com.br');
   const [password, setPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -21,7 +22,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await authApi.login(email, password);
-      localStorage.setItem('creditostock_token', data.accessToken);
+      localStorage.setItem('lastro_token', data.accessToken);
       router.push('/dashboard');
     } catch {
       setError('Credenciais inválidas. Verifique seu e-mail e senha.');
@@ -35,10 +36,8 @@ export default function LoginPage() {
       {/* Left panel */}
       <div className="hidden lg:flex lg:w-1/2 bg-slate-900 flex-col justify-between p-12">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500">
-            <Package className="h-6 w-6 text-white" />
-          </div>
-          <span className="text-xl font-bold text-white">CreditoStock</span>
+          <Image src="/lastro-logo.png" alt="Lastro" width={40} height={40} className="rounded-xl" />
+          <span className="text-xl font-bold text-white">Lastro</span>
         </div>
         <div>
           <h2 className="text-4xl font-bold text-white leading-tight">
@@ -63,7 +62,7 @@ export default function LoginPage() {
           </div>
         </div>
         <p className="text-xs text-slate-600">
-          © 2024 CreditoStock. Sistema de rastreabilidade fiscal de estoque.
+          © 2024 Lastro. Sistema de rastreabilidade fiscal de estoque.
         </p>
       </div>
 
@@ -71,10 +70,8 @@ export default function LoginPage() {
       <div className="flex flex-1 flex-col items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500">
-              <Package className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-lg font-bold">CreditoStock</span>
+            <Image src="/lastro-logo.png" alt="Lastro" width={32} height={32} className="rounded-lg" />
+            <span className="text-lg font-bold">Lastro</span>
           </div>
 
           <h1 className="text-2xl font-bold text-slate-900">Bem-vindo de volta</h1>
