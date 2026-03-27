@@ -317,10 +317,10 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-slate-800 mb-4">Acesso Rápido</h3>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Importar Estoque', href: '/stock', icon: FileSpreadsheet, desc: 'CSV / XLSX', color: 'text-blue-600 bg-blue-50 border-blue-100' },
-                { label: 'Importar NF-e', href: '/nfe', icon: FileText, desc: 'Arquivo XML', color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-                { label: 'Executar Matching', href: '/reconciliation', icon: GitMerge, desc: 'Auto + manual', color: 'text-violet-600 bg-violet-50 border-violet-100' },
-                { label: 'Gerar Dossiê', href: '/dossiers', icon: FolderOpen, desc: 'PDF + CSV', color: 'text-orange-600 bg-orange-50 border-orange-100' },
+                { label: 'Importar Estoque', href: '/estoque', icon: FileSpreadsheet, desc: 'CSV / XLSX', color: 'text-blue-600 bg-blue-50 border-blue-100' },
+                { label: 'Importar NF-e', href: '/nfe-xml', icon: FileText, desc: 'Arquivo XML', color: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+                { label: 'Executar Matching', href: '/conciliacao', icon: GitMerge, desc: 'Auto + manual', color: 'text-violet-600 bg-violet-50 border-violet-100' },
+                { label: 'Gerar Dossiê', href: '/dossies', icon: FolderOpen, desc: 'PDF + CSV', color: 'text-orange-600 bg-orange-50 border-orange-100' },
               ].map((item) => {
                 const Icon = item.icon;
                 return (

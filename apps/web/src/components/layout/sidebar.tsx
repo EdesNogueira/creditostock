@@ -12,16 +12,16 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/companies', icon: Building2, label: 'Empresas & Filiais' },
-  { href: '/products', icon: Package, label: 'Catálogo' },
-  { href: '/stock', icon: FileSpreadsheet, label: 'Importar Estoque' },
-  { href: '/nfe', icon: FileText, label: 'Importar NF-e' },
-  { href: '/reconciliation', icon: GitMerge, label: 'Conciliação' },
-  { href: '/issues', icon: AlertCircle, label: 'Pendências' },
-  { href: '/calculations', icon: Calculator, label: 'Créditos' },
-  { href: '/dossiers', icon: FolderOpen, label: 'Dossiês' },
-  { href: '/tax-rules', icon: Scale, label: 'Regras Fiscais' },
-  { href: '/audit', icon: History, label: 'Auditoria' },
+  { href: '/empresas', icon: Building2, label: 'Empresas & Filiais' },
+  { href: '/catalogo', icon: Package, label: 'Catálogo' },
+  { href: '/estoque', icon: FileSpreadsheet, label: 'Importar Estoque' },
+  { href: '/nfe-xml', icon: FileText, label: 'Importar NF-e' },
+  { href: '/conciliacao', icon: GitMerge, label: 'Conciliação' },
+  { href: '/pendencias', icon: AlertCircle, label: 'Pendências' },
+  { href: '/calculos', icon: Calculator, label: 'Créditos' },
+  { href: '/dossies', icon: FolderOpen, label: 'Dossiês' },
+  { href: '/regras-fiscais', icon: Scale, label: 'Regras Fiscais' },
+  { href: '/auditoria', icon: History, label: 'Auditoria' },
   { href: '/usuarios', icon: Users, label: 'Usuários' },
 ];
 
