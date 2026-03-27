@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { BranchSelector } from '@/components/branch-selector';
 import { stockApi } from '@/lib/api';
-import { formatCurrency, formatNumber, formatDate } from '@/lib/utils';
+import { formatCurrency, formatNumber } from '@/lib/utils';
 
 interface PreviewRow {
   row: number;
@@ -32,13 +33,13 @@ export default function StockPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImport = async () => {
-    if (!file) return;
+    if (!file || !branchId) { setError('Selecione uma filial antes de importar'); return; }
     setLoading(true);
     setError('');
     try {
       const fd = new FormData();
       fd.append('file', file);
-      fd.append('branchId', branchId || 'demo-branch-id');
+      fd.append('branchId', branchId);
       fd.append('referenceDate', referenceDate);
       const res = await stockApi.import(fd);
       setResult(res);
@@ -64,11 +65,12 @@ export default function StockPage() {
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label>ID da Filial</Label>
-                <Input
-                  placeholder="ID da filial (ex: cuid)"
+                <Label>Filial</Label>
+                <BranchSelector
                   value={branchId}
-                  onChange={(e) => setBranchId(e.target.value)}
+                  onChange={(id) => setBranchId(id)}
+                  placeholder="Selecione a filial do estoque"
+                  required
                 />
               </div>
               <div className="space-y-2">

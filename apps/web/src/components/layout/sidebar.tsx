@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Building2, Package, FileSpreadsheet,
   FileText, GitMerge, AlertCircle, Calculator,
   FolderOpen, History, LogOut, ChevronRight,
+  Scale, Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -18,7 +19,9 @@ const navItems = [
   { href: '/issues', icon: AlertCircle, label: 'Pendências' },
   { href: '/calculations', icon: Calculator, label: 'Cálculo de Créditos' },
   { href: '/dossiers', icon: FolderOpen, label: 'Dossiês' },
+  { href: '/tax-rules', icon: Scale, label: 'Regras Fiscais' },
   { href: '/audit', icon: History, label: 'Auditoria' },
+  { href: '/users', icon: Users, label: 'Usuários' },
 ];
 
 export function Sidebar() {
@@ -44,10 +47,10 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <ul className="space-y-1">
+        <ul className="space-y-0.5">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const active = pathname.startsWith(item.href);
+            const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
             return (
               <li key={item.href}>
                 <Link
@@ -60,8 +63,8 @@ export function Sidebar() {
                   )}
                 >
                   <Icon className="h-4 w-4 flex-shrink-0" />
-                  <span>{item.label}</span>
-                  {active && <ChevronRight className="ml-auto h-3 w-3" />}
+                  <span className="flex-1">{item.label}</span>
+                  {active && <ChevronRight className="h-3 w-3 opacity-70" />}
                 </Link>
               </li>
             );

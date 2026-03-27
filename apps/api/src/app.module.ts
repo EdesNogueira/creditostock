@@ -15,18 +15,36 @@ import { IssuesModule } from './issues/issues.module';
 import { DossiersModule } from './dossiers/dossiers.module';
 import { AuditModule } from './audit/audit.module';
 import { StorageModule } from './storage/storage.module';
+import { TaxRulesModule } from './tax-rules/tax-rules.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'] }),
     BullModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        redis: {
-          host: config.get('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-        },
-      }),
+      useFactory: (config: ConfigService) => {
+        const redisUrl = config.get<string>('REDIS_URL');
+        if (redisUrl) {
+          try {
+            const u = new URL(redisUrl);
+            return {
+              redis: {
+                host: u.hostname,
+                port: parseInt(u.port) || 6379,
+                password: u.password || undefined,
+                tls: u.protocol === 'rediss:' ? {} : undefined,
+              },
+            };
+          } catch { /* fall through */ }
+        }
+        return {
+          redis: {
+            host: config.get('REDIS_HOST', 'localhost'),
+            port: config.get<number>('REDIS_PORT', 6379),
+            password: config.get<string>('REDIS_PASSWORD') || undefined,
+          },
+        };
+      },
     }),
     PrismaModule,
     StorageModule,
@@ -42,6 +60,7 @@ import { StorageModule } from './storage/storage.module';
     IssuesModule,
     DossiersModule,
     AuditModule,
+    TaxRulesModule,
   ],
 })
 export class AppModule {}

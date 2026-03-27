@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { BranchSelector } from '@/components/branch-selector';
 import { nfeApi } from '@/lib/api';
 
 interface ImportResult {
@@ -38,7 +39,7 @@ export default function NfePage() {
     try {
       const fd = new FormData();
       files.forEach((f) => fd.append('files', f));
-      fd.append('branchId', branchId || 'demo-branch-id');
+      fd.append('branchId', branchId);
       const res = await nfeApi.importXmls(fd);
       setResults(res.results);
     } catch {
@@ -66,8 +67,8 @@ export default function NfePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2 max-w-sm">
-              <Label>ID da Filial</Label>
-              <Input placeholder="ID da filial" value={branchId} onChange={(e) => setBranchId(e.target.value)} />
+              <Label>Filial</Label>
+              <BranchSelector value={branchId} onChange={(id) => setBranchId(id)} placeholder="Selecione a filial" required />
             </div>
 
             <div

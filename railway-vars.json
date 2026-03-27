@@ -1,0 +1,23 @@
+{
+  "query": "mutation VariableCollectionUpsert($input: VariableCollectionUpsertInput!) { variableCollectionUpsert(input: $input) }",
+  "variables": {
+    "input": {
+      "serviceId": "cbe13174-6b5e-47e4-be2b-e279f4fe937b",
+      "environmentId": "d0d4c44c-51a3-4a0e-b3fe-803284dfbc9d",
+      "variables": {
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
+        "REDIS_URL": "${{Redis.REDIS_URL}}",
+        "JWT_SECRET": "creditostock_jwt_secret_production_2026",
+        "JWT_EXPIRES_IN": "7d",
+        "NODE_ENV": "production",
+        "FRONTEND_URL": "https://creditostock-web.vercel.app",
+        "MINIO_ENDPOINT": "localhost",
+        "MINIO_PORT": "9000",
+        "MINIO_USE_SSL": "false",
+        "MINIO_ACCESS_KEY": "minioadmin",
+        "MINIO_SECRET_KEY": "minioadmin123",
+        "MINIO_BUCKET": "creditostock"
+      }
+    }
+  }
+}

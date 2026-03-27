@@ -7,7 +7,6 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Attach JWT token from localStorage
 if (typeof window !== 'undefined') {
   api.interceptors.request.use((config) => {
     const token = localStorage.getItem('creditostock_token');
@@ -52,6 +51,14 @@ export const branchesApi = {
   list: (companyId?: string) => api.get('/branches', { params: { companyId } }).then((r) => r.data),
   get: (id: string) => api.get(`/branches/${id}`).then((r) => r.data),
   create: (data: unknown) => api.post('/branches', data).then((r) => r.data),
+  update: (id: string, data: unknown) => api.put(`/branches/${id}`, data).then((r) => r.data),
+};
+
+// Users
+export const usersApi = {
+  list: (companyId?: string) => api.get('/users', { params: { companyId } }).then((r) => r.data),
+  get: (id: string) => api.get(`/users/${id}`).then((r) => r.data),
+  create: (data: unknown) => api.post('/users', data).then((r) => r.data),
 };
 
 // Products
@@ -61,6 +68,7 @@ export const productsApi = {
   get: (id: string) => api.get(`/products/${id}`).then((r) => r.data),
   createAlias: (productId: string, data: unknown) =>
     api.post(`/products/${productId}/aliases`, data).then((r) => r.data),
+  deleteAlias: (aliasId: string) => api.delete(`/products/aliases/${aliasId}`).then((r) => r.data),
 };
 
 // Stock
@@ -115,6 +123,16 @@ export const dossiersApi = {
   create: (data: unknown) => api.post('/dossiers', data).then((r) => r.data),
   approve: (id: string) => api.put(`/dossiers/${id}/approve`).then((r) => r.data),
   reject: (id: string) => api.put(`/dossiers/${id}/reject`).then((r) => r.data),
+  exportUrl: (id: string) => `${API_URL}/dossiers/${id}/export`,
+};
+
+// Tax Rules
+export const taxRulesApi = {
+  list: (state?: string) => api.get('/tax-rules', { params: { state } }).then((r) => r.data),
+  get: (id: string) => api.get(`/tax-rules/${id}`).then((r) => r.data),
+  create: (data: unknown) => api.post('/tax-rules', data).then((r) => r.data),
+  update: (id: string, data: unknown) => api.put(`/tax-rules/${id}`, data).then((r) => r.data),
+  remove: (id: string) => api.delete(`/tax-rules/${id}`).then((r) => r.data),
 };
 
 // Audit

@@ -5,12 +5,27 @@ import { XMLParser } from 'fast-xml-parser';
 
 const prisma = new PrismaClient();
 
-const redisOptions = {
-  redis: {
+function parseRedisConfig() {
+  const url = process.env.REDIS_URL;
+  if (url) {
+    try {
+      const u = new URL(url);
+      return {
+        host: u.hostname,
+        port: parseInt(u.port) || 6379,
+        password: u.password || undefined,
+        tls: u.protocol === 'rediss:' ? {} : undefined,
+      };
+    } catch { /* fall through */ }
+  }
+  return {
     host: process.env.REDIS_HOST ?? 'localhost',
     port: parseInt(process.env.REDIS_PORT ?? '6379'),
-  },
-};
+    password: process.env.REDIS_PASSWORD || undefined,
+  };
+}
+
+const redisOptions = { redis: parseRedisConfig() };
 
 // ─── Queue definitions ────────────────────────────────────────────────────────
 const stockImportQueue = new Queue('stock-import', redisOptions);

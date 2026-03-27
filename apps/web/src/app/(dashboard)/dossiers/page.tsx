@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { FolderOpen, Plus, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { FolderOpen, Plus, CheckCircle, XCircle, Loader2, Download, FileText } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { BranchSelector } from '@/components/branch-selector';
 import { dossiersApi } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 
@@ -23,10 +24,7 @@ interface Dossier {
 
 const statusBadge = (s: string) => {
   const map: Record<string, 'secondary' | 'warning' | 'success' | 'destructive'> = {
-    DRAFT: 'secondary',
-    PENDING_REVIEW: 'warning',
-    APPROVED: 'success',
-    REJECTED: 'destructive',
+    DRAFT: 'secondary', PENDING_REVIEW: 'warning', APPROVED: 'success', REJECTED: 'destructive',
   };
   const labels: Record<string, string> = {
     DRAFT: 'Rascunho', PENDING_REVIEW: 'Em revisão', APPROVED: 'Aprovado', REJECTED: 'Rejeitado',
@@ -53,20 +51,40 @@ export default function DossiersPage() {
   useEffect(() => { load(); }, []);
 
   const handleCreate = async () => {
+    if (!title || !branchId) { alert('Preencha o título e a filial'); return; }
     setCreating(true);
     try {
-      await dossiersApi.create({ branchId: branchId || 'demo', title, notes });
+      await dossiersApi.create({ branchId, title, notes });
       setShowForm(false);
-      setTitle(''); setNotes('');
+      setTitle(''); setNotes(''); setBranchId('');
       load();
+    } catch {
+      alert('Erro ao criar dossiê');
     } finally {
       setCreating(false);
     }
   };
 
+  const handleDownload = (id: string, title: string) => {
+    const token = localStorage.getItem('creditostock_token');
+    const url = dossiersApi.exportUrl(id);
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    // Pass token as query param as fallback (not ideal, but works for MVP)
+    link.href = `${url}?token=${token}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrint = (id: string) => {
+    window.open(`/dossiers/${id}/print`, '_blank');
+  };
+
   return (
     <div>
-      <Header title="Dossiês" subtitle="Documentação para aprovação de créditos fiscais" />
+      <Header title="Dossiês" subtitle="Documentação fiscal para protocolo de créditos de ICMS" />
       <div className="p-6 space-y-6">
         <div className="flex justify-between items-center">
           <div />
@@ -78,30 +96,34 @@ export default function DossiersPage() {
         {showForm && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Criar Dossiê</CardTitle>
+              <CardTitle className="text-base">Criar Dossiê de Crédito</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Título</Label>
-                  <Input placeholder="Ex: Dossiê ICMS Dez/2024" value={title} onChange={(e) => setTitle(e.target.value)} />
+                  <Label>Título <span className="text-red-500">*</span></Label>
+                  <Input
+                    placeholder="Ex: Dossiê ICMS Dez/2024 — Filial SP"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>ID da Filial</Label>
-                  <Input placeholder="ID da filial" value={branchId} onChange={(e) => setBranchId(e.target.value)} />
+                  <Label>Filial <span className="text-red-500">*</span></Label>
+                  <BranchSelector value={branchId} onChange={(id) => setBranchId(id)} placeholder="Selecione a filial" required />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>Observações</Label>
                 <textarea
-                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="Observações sobre este dossiê..."
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
+                  placeholder="Informações adicionais sobre o dossiê..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleCreate} disabled={!title || creating}>
+                <Button onClick={handleCreate} disabled={!title || !branchId || creating}>
                   {creating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Criando...</> : 'Criar Dossiê'}
                 </Button>
                 <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
@@ -138,7 +160,7 @@ export default function DossiersPage() {
                   dossiers.map((d) => (
                     <TableRow key={d.id}>
                       <TableCell className="font-medium">{d.title}</TableCell>
-                      <TableCell>{d.branch.name}</TableCell>
+                      <TableCell>{d.branch?.name}</TableCell>
                       <TableCell>{statusBadge(d.status)}</TableCell>
                       <TableCell className="text-sm text-slate-500 max-w-[200px] truncate">{d.notes ?? '—'}</TableCell>
                       <TableCell className="text-sm">{formatDate(d.createdAt)}</TableCell>
@@ -151,6 +173,7 @@ export default function DossiersPage() {
                                 variant="outline"
                                 size="sm"
                                 className="text-green-600 border-green-200 hover:bg-green-50"
+                                title="Aprovar dossiê"
                                 onClick={() => dossiersApi.approve(d.id).then(load)}
                               >
                                 <CheckCircle className="h-4 w-4" />
@@ -159,12 +182,21 @@ export default function DossiersPage() {
                                 variant="outline"
                                 size="sm"
                                 className="text-red-600 border-red-200 hover:bg-red-50"
+                                title="Rejeitar dossiê"
                                 onClick={() => dossiersApi.reject(d.id).then(load)}
                               >
                                 <XCircle className="h-4 w-4" />
                               </Button>
                             </>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Exportar CSV com memória de cálculo"
+                            onClick={() => handleDownload(d.id, d.title)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
