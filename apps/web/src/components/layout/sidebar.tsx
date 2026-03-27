@@ -46,11 +46,14 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
     )}>
       {/* Logo section */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-white/[0.06]">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow flex-shrink-0">
-            <Image src="/lastro-logo.png" alt="Lastro" width={28} height={28} className="rounded-lg" />
-          </div>
-          <span className="text-base font-bold tracking-tight text-white">Lastro</span>
+        <Link href="/dashboard" className="flex items-center justify-center group">
+          <Image
+            src="/lastro-logo.png"
+            alt="Lastro"
+            width={42}
+            height={42}
+            className="rounded-xl opacity-90 group-hover:opacity-100 transition-opacity"
+          />
         </Link>
         {mobile && onClose && (
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-white/10 transition-colors">
