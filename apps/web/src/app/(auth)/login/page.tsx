@@ -10,8 +10,8 @@ import { authApi } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@lastro.com.br');
-  const [password, setPassword] = useState('edes123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -121,26 +121,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-3">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Contas de acesso</p>
-            {[
-              { label: 'Admin', email: 'admin@lastro.com.br', password: 'edes123456', color: 'bg-red-50 border-red-100 text-red-700' },
-              { label: 'Analista', email: 'gabrielteste@lastro.com.br', password: 'gabriel12345', color: 'bg-blue-50 border-blue-100 text-blue-700' },
-            ].map(acc => (
-              <button
-                key={acc.email}
-                type="button"
-                onClick={() => { setEmail(acc.email); setPassword(acc.password); }}
-                className="w-full flex items-center justify-between rounded-lg border bg-white p-2.5 hover:bg-slate-100 transition-colors text-left group"
-              >
-                <div>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${acc.color} mr-2`}>{acc.label}</span>
-                  <span className="text-xs font-mono text-slate-600">{acc.email}</span>
-                </div>
-                <span className="text-xs font-mono text-slate-400 group-hover:text-slate-600">{acc.password}</span>
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </div>
