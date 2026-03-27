@@ -1,0 +1,7 @@
+{
+  "framework": "nextjs",
+  "rootDirectory": "apps/web",
+  "installCommand": "npm install -g pnpm@9 && pnpm install --no-frozen-lockfile",
+  "buildCommand": "pnpm --filter web run build",
+  "outputDirectory": "apps/web/.next"
+}
