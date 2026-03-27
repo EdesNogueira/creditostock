@@ -1,0 +1,399 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  ANALYST
+  VIEWER
+}
+
+enum IssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  IGNORED
+}
+
+enum IssueSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum MatchType {
+  EXACT_SKU
+  EXACT_EAN
+  ALIAS
+  FUZZY_DESCRIPTION_NCM
+  MANUAL
+}
+
+enum AllocationStrategy {
+  FIFO
+  MANUAL
+}
+
+enum CalculationMode {
+  STRICT
+  ASSISTED
+  SIMULATION
+}
+
+enum CalculationStatus {
+  PENDING
+  RUNNING
+  DONE
+  ERROR
+}
+
+enum DossierStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum JobStatus {
+  QUEUED
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  IMPORT
+  MANUAL_LINK
+  CALCULATE
+  APPROVE
+  REJECT
+}
+
+// ─── Core Entities ───────────────────────────────────────────────────────────
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  cnpj        String   @unique
+  tradeName   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  branches    Branch[]
+  users       User[]
+  auditLogs   AuditLog[]
+
+  @@map("companies")
+}
+
+model Branch {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  cnpj        String   @unique
+  address     String?
+  city        String?
+  state       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stockSnapshots    StockSnapshot[]
+  nfeDocuments      NfeDocument[]
+  calculations      CreditCalculation[]
+  dossiers          Dossier[]
+
+  @@map("branches")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  companyId    String
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         UserRole @default(ANALYST)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  auditLogs  AuditLog[]
+
+  @@map("users")
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  companyId    String?
+  sku          String
+  ean          String?
+  description  String
+  ncm          String?
+  unit         String   @default("UN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  aliases             ProductAlias[]
+  stockSnapshotItems  StockSnapshotItem[]
+  nfeItems            NfeItem[]
+  productMatches      ProductMatch[]
+
+  @@unique([companyId, sku])
+  @@map("products")
+}
+
+model ProductAlias {
+  id          String  @id @default(cuid())
+  productId   String
+  aliasType   String  // 'sku' | 'ean' | 'description' | 'supplier_code'
+  aliasValue  String
+  sourceNote  String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([aliasType, aliasValue])
+  @@map("product_aliases")
+}
+
+// ─── Stock Snapshot ───────────────────────────────────────────────────────────
+
+model StockSnapshot {
+  id           String    @id @default(cuid())
+  branchId     String
+  referenceDate DateTime
+  importedAt   DateTime  @default(now())
+  fileName     String
+  storageKey   String?
+  totalItems   Int       @default(0)
+  jobStatus    JobStatus @default(QUEUED)
+  jobError     String?
+
+  branch  Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  items   StockSnapshotItem[]
+
+  @@map("stock_snapshots")
+}
+
+model StockSnapshotItem {
+  id              String  @id @default(cuid())
+  snapshotId      String
+  productId       String?
+  rawSku          String
+  rawEan          String?
+  rawDescription  String
+  rawNcm          String?
+  quantity        Decimal @db.Decimal(14, 4)
+  unitCost        Decimal @db.Decimal(14, 4)
+  totalCost       Decimal @db.Decimal(14, 4)
+  unit            String  @default("UN")
+
+  snapshot           StockSnapshot         @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  product            Product?              @relation(fields: [productId], references: [id])
+  productMatches     ProductMatch[]
+  originAllocations  StockOriginAllocation[]
+  issues             Issue[]
+
+  @@map("stock_snapshot_items")
+}
+
+// ─── NF-e ─────────────────────────────────────────────────────────────────────
+
+model NfeDocument {
+  id              String   @id @default(cuid())
+  branchId        String
+  chaveAcesso     String   @unique
+  numero          String
+  serie           String
+  dataEmissao     DateTime
+  cnpjEmitente    String
+  nomeEmitente    String
+  cnpjDestinatario String
+  valorTotal      Decimal  @db.Decimal(14, 2)
+  storageKey      String?
+  rawXml          String?  @db.Text
+  importedAt      DateTime @default(now())
+  jobStatus       JobStatus @default(QUEUED)
+  jobError        String?
+
+  branch  Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  items   NfeItem[]
+
+  @@map("nfe_documents")
+}
+
+model NfeItem {
+  id            String   @id @default(cuid())
+  nfeDocumentId String
+  productId     String?
+  cProd         String
+  xProd         String
+  cEan          String?
+  ncm           String?
+  cfop          String
+  uCom          String
+  qCom          Decimal  @db.Decimal(14, 4)
+  vUnCom        Decimal  @db.Decimal(14, 4)
+  vProd         Decimal  @db.Decimal(14, 2)
+  vIcms         Decimal  @db.Decimal(14, 2)  @default(0)
+  pIcms         Decimal  @db.Decimal(8, 4)   @default(0)
+  cst           String?
+  csosn         String?
+
+  nfeDocument        NfeDocument           @relation(fields: [nfeDocumentId], references: [id], onDelete: Cascade)
+  product            Product?              @relation(fields: [productId], references: [id])
+  productMatches     ProductMatch[]
+  originAllocations  StockOriginAllocation[]
+
+  @@map("nfe_items")
+}
+
+// ─── Matching ────────────────────────────────────────────────────────────────
+
+model ProductMatch {
+  id                  String    @id @default(cuid())
+  stockSnapshotItemId String
+  nfeItemId           String
+  productId           String?
+  matchType           MatchType
+  confidence          Float     @default(1.0)
+  isConfirmed         Boolean   @default(false)
+  confirmedAt         DateTime?
+  confirmedBy         String?
+  notes               String?
+  createdAt           DateTime  @default(now())
+
+  stockSnapshotItem StockSnapshotItem @relation(fields: [stockSnapshotItemId], references: [id], onDelete: Cascade)
+  nfeItem           NfeItem           @relation(fields: [nfeItemId], references: [id], onDelete: Cascade)
+  product           Product?          @relation(fields: [productId], references: [id])
+
+  @@map("product_matches")
+}
+
+// ─── Origin Allocation ───────────────────────────────────────────────────────
+
+model StockOriginAllocation {
+  id                  String             @id @default(cuid())
+  stockSnapshotItemId String
+  nfeItemId           String
+  strategy            AllocationStrategy @default(FIFO)
+  allocatedQty        Decimal            @db.Decimal(14, 4)
+  allocatedCost       Decimal            @db.Decimal(14, 4)
+  allocatedIcms       Decimal            @db.Decimal(14, 4)
+  isManual            Boolean            @default(false)
+  manualReason        String?
+  createdAt           DateTime           @default(now())
+
+  stockSnapshotItem StockSnapshotItem @relation(fields: [stockSnapshotItemId], references: [id], onDelete: Cascade)
+  nfeItem           NfeItem           @relation(fields: [nfeItemId], references: [id], onDelete: Cascade)
+
+  @@map("stock_origin_allocations")
+}
+
+// ─── Tax Rules ───────────────────────────────────────────────────────────────
+
+model TaxRule {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  ncmRange    String?
+  cfopList    String?
+  state       String?
+  icmsRate    Decimal @db.Decimal(8, 4)
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("tax_rules")
+}
+
+// ─── Credit Calculation ──────────────────────────────────────────────────────
+
+model CreditCalculation {
+  id              String            @id @default(cuid())
+  branchId        String
+  mode            CalculationMode   @default(ASSISTED)
+  status          CalculationStatus @default(PENDING)
+  totalStockCost  Decimal           @db.Decimal(14, 2) @default(0)
+  totalIcmsPaid   Decimal           @db.Decimal(14, 2) @default(0)
+  potentialCredit Decimal           @db.Decimal(14, 2) @default(0)
+  approvedCredit  Decimal           @db.Decimal(14, 2) @default(0)
+  blockedCredit   Decimal           @db.Decimal(14, 2) @default(0)
+  reconciledPct   Float             @default(0)
+  jobError        String?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime          @default(now())
+
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("credit_calculations")
+}
+
+// ─── Issues ──────────────────────────────────────────────────────────────────
+
+model Issue {
+  id                  String        @id @default(cuid())
+  stockSnapshotItemId String?
+  severity            IssueSeverity @default(MEDIUM)
+  status              IssueStatus   @default(OPEN)
+  title               String
+  description         String?
+  resolution          String?
+  resolvedAt          DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  stockSnapshotItem StockSnapshotItem? @relation(fields: [stockSnapshotItemId], references: [id])
+
+  @@map("issues")
+}
+
+// ─── Dossier ─────────────────────────────────────────────────────────────────
+
+model Dossier {
+  id          String        @id @default(cuid())
+  branchId    String
+  title       String
+  status      DossierStatus @default(DRAFT)
+  storageKey  String?
+  notes       String?
+  approvedAt  DateTime?
+  approvedBy  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("dossiers")
+}
+
+// ─── Audit Log ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  userId     String?
+  companyId  String?
+  action     AuditAction
+  entity     String
+  entityId   String?
+  payload    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  user    User?    @relation(fields: [userId], references: [id])
+  company Company? @relation(fields: [companyId], references: [id])
+
+  @@map("audit_logs")
+}
