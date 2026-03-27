@@ -87,7 +87,7 @@ export default function AuditPage() {
     return matchSearch && matchEntity;
   });
 
-  const entities = [...new Set(logs.map((l) => l.entity))].sort();
+  const entities = Array.from(new Set(logs.map((l) => l.entity))).sort();
 
   return (
     <div>
