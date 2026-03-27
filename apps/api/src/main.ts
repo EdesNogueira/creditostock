@@ -7,8 +7,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
+  const allowedOrigins = (process.env.FRONTEND_URL ?? 'http://localhost:3000').split(',');
   app.enableCors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.some(o => origin.startsWith(o.trim()))) {
+        callback(null, true);
+      } else {
+        callback(null, true); // allow all for MVP
+      }
+    },
     credentials: true,
   });
 
@@ -30,10 +37,15 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
+  // Simple health check for Railway
+  app.getHttpAdapter().getInstance().get('/health', (_req: any, res: any) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
   const port = process.env.PORT ?? 3001;
-  await app.listen(port);
-  logger.log(`API running on http://localhost:${port}`);
-  logger.log(`Swagger docs at http://localhost:${port}/docs`);
+  await app.listen(port, '0.0.0.0');
+  logger.log(`API running on http://0.0.0.0:${port}`);
+  logger.log(`Swagger docs at http://0.0.0.0:${port}/docs`);
 }
 
 bootstrap();

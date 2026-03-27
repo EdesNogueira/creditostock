@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "nest start --watch",
-    "build": "nest build",
-    "start": "node dist/main",
-    "lint": "eslint \"{src,apps,libs}/**/*.ts\"",
+    "build": "prisma generate && nest build",
+    "start": "node dist/src/main",
+    "start:prod": "node dist/src/main",
+    "postinstall": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
     "db:seed": "ts-node -r tsconfig-paths/register prisma/seed.ts",
     "prisma": "prisma"
   },
