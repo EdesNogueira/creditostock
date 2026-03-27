@@ -68,15 +68,15 @@ export class StockService {
 
   private validateRow(row: Record<string, unknown>, rowNum: number): StockRowPreview {
     const errors: string[] = [];
-    const sku = String(row['sku'] ?? row['SKU'] ?? row['codigo'] ?? '').trim();
-    const description = String(row['description'] ?? row['descricao'] ?? row['DESCRICAO'] ?? '').trim();
-    const qty = parseFloat(String(row['quantity'] ?? row['quantidade'] ?? row['QTD'] ?? '0'));
-    const unitCost = parseFloat(String(row['unitCost'] ?? row['custo_unitario'] ?? row['CUSTO_UNIT'] ?? '0'));
+    const sku = String(row['sku'] ?? row['SKU'] ?? row['codigo'] ?? row['Codigo'] ?? '').trim();
+    const description = String(row['description'] ?? row['descricao'] ?? row['Descricao'] ?? row['DESCRICAO'] ?? row['descricão'] ?? '').trim();
+    const qty = parseFloat(String(row['quantity'] ?? row['quantidade'] ?? row['Quantidade'] ?? row['QTD'] ?? row['qtd'] ?? '0'));
+    const unitCost = parseFloat(String(row['unitCost'] ?? row['custoUnitario'] ?? row['custo_unitario'] ?? row['custounitario'] ?? row['Custo Unitario'] ?? row['CUSTO_UNIT'] ?? '0'));
 
-    if (!sku) errors.push('SKU is required');
-    if (!description) errors.push('Description is required');
-    if (isNaN(qty) || qty < 0) errors.push('Invalid quantity');
-    if (isNaN(unitCost) || unitCost < 0) errors.push('Invalid unit cost');
+    if (!sku) errors.push('SKU é obrigatório');
+    if (!description) errors.push('Descrição é obrigatória');
+    if (isNaN(qty) || qty < 0) errors.push('Quantidade inválida');
+    if (isNaN(unitCost) || unitCost < 0) errors.push('Custo unitário inválido');
 
     return {
       row: rowNum,
@@ -87,7 +87,7 @@ export class StockService {
       quantity: isNaN(qty) ? 0 : qty,
       unitCost: isNaN(unitCost) ? 0 : unitCost,
       totalCost: isNaN(qty) || isNaN(unitCost) ? 0 : qty * unitCost,
-      unit: String(row['unit'] ?? row['unidade'] ?? 'UN').trim(),
+      unit: String(row['unit'] ?? row['unidade'] ?? row['Unidade'] ?? 'UN').trim(),
       errors,
     };
   }

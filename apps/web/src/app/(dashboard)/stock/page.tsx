@@ -97,13 +97,27 @@ export default function StockPage() {
             </div>
 
             {/* Column hint */}
-            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
-              <p className="text-xs font-semibold text-slate-600 mb-2">Colunas esperadas no arquivo:</p>
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 space-y-2">
+              <p className="text-xs font-semibold text-slate-600">Colunas esperadas no arquivo:</p>
               <div className="flex flex-wrap gap-1.5">
-                {['sku *', 'description *', 'quantity *', 'unitCost *', 'ean', 'ncm', 'unit'].map(c => (
-                  <span key={c} className={`text-xs font-mono px-2 py-0.5 rounded-md ${c.includes('*') ? 'bg-blue-100 text-blue-700' : 'bg-white border border-slate-200 text-slate-500'}`}>{c}</span>
+                {[
+                  { name: 'sku', required: true },
+                  { name: 'descricao', required: true },
+                  { name: 'quantidade', required: true },
+                  { name: 'custoUnitario', required: true },
+                  { name: 'ean', required: false },
+                  { name: 'ncm', required: false },
+                  { name: 'unidade', required: false },
+                ].map(c => (
+                  <span
+                    key={c.name}
+                    className={`text-xs font-mono px-2 py-0.5 rounded-md flex items-center gap-1 ${c.required ? 'bg-blue-100 text-blue-700' : 'bg-white border border-slate-200 text-slate-500'}`}
+                  >
+                    {c.name}{c.required && <span className="text-red-500 text-[10px]">*</span>}
+                  </span>
                 ))}
               </div>
+              <p className="text-xs text-slate-400">* Campos obrigatórios. O sistema também aceita nomes em inglês (sku, description, quantity, unitCost).</p>
             </div>
 
             {error && (
