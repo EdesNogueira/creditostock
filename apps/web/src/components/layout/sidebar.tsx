@@ -22,7 +22,7 @@ const navItems = [
   { href: '/dossiers', icon: FolderOpen, label: 'Dossiês' },
   { href: '/tax-rules', icon: Scale, label: 'Regras Fiscais' },
   { href: '/audit', icon: History, label: 'Auditoria' },
-  { href: '/users', icon: Users, label: 'Usuários' },
+  { href: '/usuarios', icon: Users, label: 'Usuários' },
 ];
 
 interface SidebarProps {

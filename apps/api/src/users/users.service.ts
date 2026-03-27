@@ -32,4 +32,22 @@ export class UsersService {
     if (!user) throw new NotFoundException(`User ${id} not found`);
     return user;
   }
+
+  async update(id: string, dto: Partial<{ name: string; role: string; isActive: boolean }>) {
+    await this.findOne(id);
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.role !== undefined && { role: dto.role as 'ADMIN' | 'ANALYST' }),
+        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      },
+      select: { id: true, name: true, email: true, role: true, isActive: true, companyId: true, createdAt: true },
+    });
+  }
+
+  async remove(id: string) {
+    await this.findOne(id);
+    return this.prisma.user.delete({ where: { id } });
+  }
 }

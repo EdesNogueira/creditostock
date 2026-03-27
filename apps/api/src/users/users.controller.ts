@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
@@ -19,4 +19,10 @@ export class UsersController {
 
   @Post()
   create(@Body() dto: CreateUserDto) { return this.service.create(dto); }
+
+  @Put(':id')
+  update(@Param('id') id: string, @Body() dto: Partial<CreateUserDto>) { return this.service.update(id, dto); }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) { return this.service.remove(id); }
 }
