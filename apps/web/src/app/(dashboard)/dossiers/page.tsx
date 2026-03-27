@@ -85,7 +85,7 @@ export default function DossiersPage() {
   return (
     <div>
       <Header title="Dossiês" subtitle="Documentação fiscal para protocolo de créditos de ICMS" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         <div className="flex justify-between items-center">
           <div />
           <Button onClick={() => setShowForm(true)}>

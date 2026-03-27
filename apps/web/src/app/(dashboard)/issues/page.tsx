@@ -76,7 +76,7 @@ export default function IssuesPage() {
   return (
     <div>
       <Header title="Pendências" subtitle="Itens com problemas na conciliação fiscal" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         {/* Summary */}
         <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
           {Object.entries(bySeverity).map(([sev, count]) => (

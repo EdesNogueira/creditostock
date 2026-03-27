@@ -81,7 +81,7 @@ export default function CalculationsPage() {
   return (
     <div>
       <Header title="Cálculo de Créditos" subtitle="Execute e acompanhe os cálculos de crédito de ICMS" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         {/* Run Calculation */}
         <Card>
           <CardHeader>

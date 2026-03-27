@@ -58,7 +58,7 @@ export default function NfePage() {
   return (
     <div>
       <Header title="Importar NF-e XML" subtitle="Importe arquivos XML de notas fiscais em lote" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">

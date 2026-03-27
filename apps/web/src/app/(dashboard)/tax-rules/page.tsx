@@ -82,7 +82,7 @@ export default function TaxRulesPage() {
   return (
     <div>
       <Header title="Regras Fiscais" subtitle="Parametrize as alíquotas de ICMS por estado, NCM e CFOP" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-3">
             <select

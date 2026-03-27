@@ -131,7 +131,7 @@ export default function CompaniesPage() {
   return (
     <div>
       <Header title="Empresas & Filiais" subtitle="Gerencie as empresas e suas filiais no sistema" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         <div className="flex justify-end">
           <Button onClick={() => setShowCompanyForm(true)}>
             <Plus className="mr-2 h-4 w-4" /> Nova Empresa

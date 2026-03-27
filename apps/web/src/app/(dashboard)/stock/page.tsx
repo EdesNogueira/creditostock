@@ -54,7 +54,7 @@ export default function StockPage() {
   return (
     <div>
       <Header title="Importar Estoque" subtitle="Importe o snapshot de estoque via CSV ou XLSX" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         {/* Upload Card */}
         <Card>
           <CardHeader>

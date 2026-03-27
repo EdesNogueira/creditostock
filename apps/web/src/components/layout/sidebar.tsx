@@ -41,8 +41,8 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
 
   return (
     <aside className={cn(
-      'flex flex-col bg-[#0c1425] text-white',
-      mobile ? 'w-72 h-full' : 'fixed inset-y-0 left-0 w-60 z-40',
+      'flex flex-col bg-[#0c1425] text-white h-full',
+      mobile ? 'w-72' : 'w-60',
     )}>
       {/* Logo section */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-white/[0.06]">

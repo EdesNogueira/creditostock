@@ -103,7 +103,7 @@ export default function ReconciliationPage() {
   return (
     <div>
       <Header title="Conciliação" subtitle="Vinculação de itens de estoque com NF-e — nota a nota" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         {/* Snapshot selector */}
         <Card>
           <CardContent className="pt-4">
@@ -172,21 +172,21 @@ export default function ReconciliationPage() {
 
         {/* Table */}
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>SKU</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead>Qtd</TableHead>
-                  <TableHead>Custo Total</TableHead>
+                  <TableHead className="hidden sm:table-cell">Qtd</TableHead>
+                  <TableHead className="hidden md:table-cell">Custo Total</TableHead>
                   <TableHead className="flex items-center gap-1">
                     Tipo de Vínculo
                     <HelpTooltip text="SKU Exato: código idêntico ao da NF-e. EAN Exato: código de barras idêntico. Por Alias: encontrado via código alternativo. Aproximado (Desc+NCM): descrição similar + mesmo NCM — requer revisão." />
                   </TableHead>
-                  <TableHead>Confiança</TableHead>
+                  <TableHead className="hidden lg:table-cell">Confiança</TableHead>
                   <TableHead>ICMS Alocado</TableHead>
-                  <TableHead>Pendências</TableHead>
+                  <TableHead className="hidden sm:table-cell">Pendências</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -226,12 +226,12 @@ export default function ReconciliationPage() {
                             <p className="text-xs text-slate-400 truncate">{item.product.description}</p>
                           )}
                         </TableCell>
-                        <TableCell>{formatNumber(parseFloat(item.quantity))}</TableCell>
-                        <TableCell>{formatCurrency(parseFloat(item.totalCost))}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{formatNumber(parseFloat(item.quantity))}</TableCell>
+                        <TableCell className="hidden md:table-cell">{formatCurrency(parseFloat(item.totalCost))}</TableCell>
                         <TableCell>
                           {bestMatch ? matchTypeBadge(bestMatch.matchType) : <Badge variant="secondary">Não conciliado</Badge>}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell">
                           {bestMatch ? (
                             <div className="flex items-center gap-2">
                               <Progress value={bestMatch.confidence * 100} className="h-2 w-16" />
@@ -244,7 +244,7 @@ export default function ReconciliationPage() {
                             <span className="text-blue-600 font-medium">{formatCurrency(allocatedIcms)}</span>
                           ) : '—'}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           {item._count.issues > 0 ? (
                             <Badge variant="warning">{item._count.issues}</Badge>
                           ) : (

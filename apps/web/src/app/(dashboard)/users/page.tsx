@@ -61,7 +61,7 @@ export default function UsersPage() {
   return (
     <div>
       <Header title="Usuários" subtitle="Gerencie os usuários com acesso ao sistema" />
-      <div className="p-6 space-y-6">
+      <div className="p-4 lg:p-6 space-y-6">
         <div className="flex justify-between items-center">
           <p className="text-sm text-slate-500">{users.length} usuário(s)</p>
           <Button onClick={() => setShowForm(true)}>

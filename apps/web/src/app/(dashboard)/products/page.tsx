@@ -149,7 +149,7 @@ export default function ProductsPage() {
   return (
     <div>
       <Header title="Catálogo de Produtos" subtitle="Gerencie produtos e seus aliases de identificação" />
-      <div className="p-6 space-y-4">
+      <div className="p-4 lg:p-6 space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-1 max-w-sm">
             <div className="relative flex-1">
