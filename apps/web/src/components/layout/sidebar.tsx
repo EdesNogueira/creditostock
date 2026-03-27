@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/empresas', icon: Building2, label: 'Empresas & Filiais' },
-  { href: '/catalogo', icon: Package, label: 'Catálogo' },
+  { href: '/catalogo', icon: Package, label: 'Estoque' },
   { href: '/estoque', icon: FileSpreadsheet, label: 'Importar Estoque' },
   { href: '/nfe-xml', icon: FileText, label: 'Importar NF-e' },
   { href: '/conciliacao', icon: GitMerge, label: 'Conciliação' },
