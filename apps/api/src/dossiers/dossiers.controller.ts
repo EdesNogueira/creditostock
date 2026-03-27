@@ -1,5 +1,4 @@
-import { Controller, Get, Post, Put, Param, Query, Body, UseGuards, Res } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Post, Put, Param, Query, Body, UseGuards, StreamableFile, Header } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -33,10 +32,13 @@ export class DossiersController {
   reject(@Param('id') id: string) { return this.service.reject(id); }
 
   @Get(':id/export')
-  async export(@Param('id') id: string, @Res() res: Response) {
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  async export(@Param('id') id: string) {
     const { csv, filename } = await this.service.exportCsv(id);
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send('\uFEFF' + csv);
+    const buffer = Buffer.from('\uFEFF' + csv, 'utf-8');
+    return new StreamableFile(buffer, {
+      type: 'text/csv; charset=utf-8',
+      disposition: `attachment; filename="${filename}"`,
+    });
   }
 }
