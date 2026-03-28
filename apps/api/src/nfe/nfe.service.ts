@@ -40,21 +40,28 @@ export class NfeService {
           continue;
         }
 
-        const storageKey = this.storage.buildKey('nfe', file.originalname);
-        await this.storage.upload(storageKey, file.buffer, 'application/xml');
+        // Storage upload is optional - rawXml is stored in DB as primary source
+        let storageKey: string | undefined;
+        try {
+          storageKey = this.storage.buildKey('nfe', file.originalname);
+          await this.storage.upload(storageKey, file.buffer, 'application/xml');
+        } catch (storageErr) {
+          this.logger.warn(`Storage upload failed for ${file.originalname} — continuing without storage: ${storageErr}`);
+          storageKey = undefined;
+        }
 
         const doc = await this.prisma.nfeDocument.create({
           data: {
             branchId,
             chaveAcesso: chave,
-            numero: String(ide.nNF),
-            serie: String(ide.serie),
-            dataEmissao: new Date(ide.dhEmi ?? ide.dEmi),
-            cnpjEmitente: String(emit.CNPJ ?? ''),
-            nomeEmitente: String(emit.xNome ?? ''),
+            numero: String(ide.nNF ?? ide.nNf ?? 0),
+            serie: String(ide.serie ?? 1),
+            dataEmissao: new Date(ide.dhEmi ?? ide.dEmi ?? new Date()),
+            cnpjEmitente: String(emit.CNPJ ?? emit.CPF ?? ''),
+            nomeEmitente: String(emit.xNome ?? emit.xFant ?? ''),
             cnpjDestinatario: String(dest?.CNPJ ?? dest?.CPF ?? ''),
             valorTotal: parseFloat(String(total?.vNF ?? 0)),
-            storageKey,
+            ...(storageKey ? { storageKey } : {}),
             rawXml: file.buffer.toString('utf-8'),
             jobStatus: 'QUEUED',
           },

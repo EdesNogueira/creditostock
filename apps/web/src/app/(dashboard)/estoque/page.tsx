@@ -50,7 +50,7 @@ export default function StockPage() {
               </div>
               <div>
                 <p className="font-semibold text-slate-900">Configurar Importação</p>
-                <p className="text-xs text-slate-500">CSV ou XLSX com dados de estoque</p>
+                <p className="text-xs text-slate-500">CSV, XLSX ou PDF com dados de estoque</p>
               </div>
             </div>
           </div>
@@ -73,7 +73,7 @@ export default function StockPage() {
                 file ? 'border-blue-300 bg-blue-50' : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
               }`}
             >
-              <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={e => { setFile(e.target.files?.[0] ?? null); setResult(null); }} />
+              <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,.pdf" className="hidden" onChange={e => { setFile(e.target.files?.[0] ?? null); setResult(null); }} />
               {file ? (
                 <div className="flex flex-col items-center gap-2">
                   <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -91,7 +91,7 @@ export default function StockPage() {
                     <Upload className="h-6 w-6 text-slate-400" />
                   </div>
                   <p className="font-semibold text-slate-700">Arraste ou clique para selecionar</p>
-                  <p className="text-xs text-slate-400">Suporta CSV e XLSX</p>
+                  <p className="text-xs text-slate-400">Suporta CSV, XLSX e PDF</p>
                 </div>
               )}
             </div>
@@ -117,7 +117,8 @@ export default function StockPage() {
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-slate-400">* Campos obrigatórios. O sistema também aceita nomes em inglês (sku, description, quantity, unitCost).</p>
+              <p className="text-xs text-slate-400">* Campos obrigatórios. Aceita nomes em inglês (sku, description, quantity, unitCost) e português.</p>
+              <p className="text-xs text-amber-600 mt-1.5">⚠ PDF: o arquivo deve ter texto selecionável (não escaneado) e formato tabular com cabeçalho de colunas.</p>
             </div>
 
             {error && (
