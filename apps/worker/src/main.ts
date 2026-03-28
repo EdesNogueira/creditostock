@@ -34,7 +34,11 @@ const matchingQueue = new Queue('matching', redisOptions);
 const calculationsQueue = new Queue('calculations', redisOptions);
 const dossiersQueue = new Queue('dossiers', redisOptions);
 
-const xmlParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@_',
+  removeNSPrefix: true,
+});
 
 // ─── Stock Import Processor ───────────────────────────────────────────────────
 stockImportQueue.process('process-stock-import', async (job) => {
@@ -96,7 +100,14 @@ nfeImportQueue.process('process-nfe-items', async (job) => {
 
   const parsed = xmlParser.parse(doc.rawXml);
   const nfeProc = parsed.nfeProc ?? parsed;
-  const nfe = nfeProc.NFe?.infNFe ?? nfeProc.infNFe;
+  const nfeNode =
+    nfeProc.NFe?.infNFe ??
+    nfeProc.infNFe ??
+    nfeProc.NFe ??
+    parsed.NFe?.infNFe ??
+    parsed.NFe ??
+    parsed.infNFe;
+  const nfe = nfeNode?.infNFe ?? nfeNode;
   const rawDet = nfe?.det;
   const items = Array.isArray(rawDet) ? rawDet : [rawDet].filter(Boolean);
 

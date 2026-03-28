@@ -8,7 +8,11 @@ import { XMLParser } from 'fast-xml-parser';
 @Injectable()
 export class NfeService {
   private readonly logger = new Logger(NfeService.name);
-  private readonly xmlParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+  private readonly xmlParser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: '@_',
+    removeNSPrefix: true,
+  });
 
   constructor(
     private readonly prisma: PrismaService,
@@ -20,19 +24,41 @@ export class NfeService {
     const results = [];
     for (const file of files) {
       try {
-        const parsed = this.xmlParser.parse(file.buffer.toString('utf-8'));
-        const nfeProc = parsed.nfeProc ?? parsed;
-        const nfe = nfeProc.NFe?.infNFe ?? nfeProc.infNFe;
-        if (!nfe) {
-          results.push({ file: file.originalname, status: 'error', message: 'Invalid NF-e XML structure' });
+        const xmlContent = file.buffer.toString('utf-8');
+        if (!xmlContent || xmlContent.trim().length === 0) {
+          results.push({ file: file.originalname, status: 'error', message: 'Arquivo XML está vazio' });
           continue;
         }
 
-        const ide = nfe.ide;
-        const emit = nfe.emit;
-        const dest = nfe.dest;
-        const total = nfe.total?.ICMSTot;
-        const chave = nfe['@_Id']?.replace('NFe', '') ?? '';
+        const parsed = this.xmlParser.parse(xmlContent);
+        const nfeProc = parsed.nfeProc ?? parsed;
+        const nfe =
+          nfeProc.NFe?.infNFe ??
+          nfeProc.infNFe ??
+          nfeProc.NFe ??
+          parsed.NFe?.infNFe ??
+          parsed.NFe ??
+          parsed.infNFe;
+        if (!nfe) {
+          const topKeys = Object.keys(parsed).join(', ');
+          results.push({
+            file: file.originalname,
+            status: 'error',
+            message: `Estrutura XML NF-e não reconhecida. Elementos encontrados: ${topKeys}`,
+          });
+          continue;
+        }
+
+        const infNFe = nfe.infNFe ?? nfe;
+        const ide = infNFe.ide;
+        const emit = infNFe.emit;
+        const dest = infNFe.dest;
+        const total = infNFe.total?.ICMSTot;
+        const chave =
+          infNFe['@_Id']?.replace('NFe', '') ??
+          nfe['@_Id']?.replace('NFe', '') ??
+          nfeProc.protNFe?.infProt?.chNFe ??
+          '';
 
         const existing = await this.prisma.nfeDocument.findUnique({ where: { chaveAcesso: chave } });
         if (existing) {

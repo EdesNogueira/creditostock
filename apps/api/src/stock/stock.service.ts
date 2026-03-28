@@ -92,7 +92,96 @@ export class StockService {
       throw new BadRequestException('PDF não contém texto legível. Use um PDF com texto selecionável (não escaneado).');
     }
 
-    // Detect header row: first line containing column-like keywords
+    const isRetaguardaFormat = lines.some(
+      (l) =>
+        l.includes('Posição de Estoque') ||
+        l.includes('RetaguardaGB') ||
+        (l.toLowerCase().includes('loja') &&
+          l.toLowerCase().includes('produto') &&
+          l.toLowerCase().includes('estoque')),
+    );
+
+    if (isRetaguardaFormat) {
+      return this.parseRetaguardaPdf(lines);
+    }
+
+    return this.parseGenericPdf(lines);
+  }
+
+  private parseBrazilianNumber(s: string): number {
+    return Number.parseFloat(s.replace(/\./g, '').replace(',', '.'));
+  }
+
+  private parseRetaguardaPdf(lines: string[]): StockRowPreview[] {
+    const UNITS = 'UND|UN|KG|G|MG|LT|L|ML|CX|RL|PC|PCT|PAR|PAC|FD|DZ|SC|TN|M|CM';
+    const BR_NUM = '(\\d{1,3}(?:\\.\\d{3})*,\\d{2,3})';
+
+    const lineRegex = new RegExp(
+      `^(\\d{4,8})\\s+(\\d{10,20})\\s+-\\s+(.+?)\\s+(${UNITS})\\s+` +
+        `${BR_NUM}[\\s\\t]+${BR_NUM}[\\s\\t]+${BR_NUM}[\\s\\t]+${BR_NUM}[\\s\\t]+${BR_NUM}[\\s\\t]+${BR_NUM}\\s*$`,
+      'i',
+    );
+
+    const rows: StockRowPreview[] = [];
+    let rowNum = 0;
+
+    for (const line of lines) {
+      const match = line.match(lineRegex);
+      if (!match) continue;
+
+      rowNum++;
+      const [, , productCode, description, unit, n0, n1, n2, n3, n4, n5] = match;
+
+      const nums = [n0, n1, n2, n3, n4, n5].map((s) => this.parseBrazilianNumber(s));
+
+      // pdf-parse extracts columns in this order for RetaguardaGB:
+      // [0]=Estoque Inicial, [1]=Entrada, [2]=Estoque Final, [3]=Custo, [4]=Saída, [5]=Total
+      let quantity = nums[2];
+      let unitCost = nums[3];
+      let totalCost = nums[5];
+
+      // Cross-check: Total ≈ Quantity × UnitCost
+      if (totalCost > 0 && Math.abs(quantity * unitCost - totalCost) > 0.1) {
+        let found = false;
+        for (let qi = 0; qi < 5 && !found; qi++) {
+          for (let ci = qi + 1; ci < 5 && !found; ci++) {
+            if (Math.abs(nums[qi] * nums[ci] - totalCost) < 0.1) {
+              quantity = nums[qi];
+              unitCost = nums[ci];
+              found = true;
+            }
+          }
+        }
+      }
+
+      const errors: string[] = [];
+      if (!productCode) errors.push('SKU é obrigatório');
+      if (!description.trim()) errors.push('Descrição é obrigatória');
+      if (isNaN(quantity) || quantity < 0) errors.push('Quantidade inválida');
+      if (isNaN(unitCost) || unitCost < 0) errors.push('Custo unitário inválido');
+
+      rows.push({
+        row: rowNum,
+        sku: productCode,
+        description: description.trim(),
+        quantity: isNaN(quantity) ? 0 : quantity,
+        unitCost: isNaN(unitCost) ? 0 : unitCost,
+        totalCost: isNaN(totalCost) ? 0 : totalCost,
+        unit: unit.toUpperCase(),
+        errors,
+      });
+    }
+
+    if (rows.length === 0) {
+      throw new BadRequestException(
+        'Não foi possível extrair dados do PDF. Verifique se o arquivo tem formato de "Relatório Posição de Estoque".',
+      );
+    }
+
+    return rows;
+  }
+
+  private parseGenericPdf(lines: string[]): StockRowPreview[] {
     const headerKeywords = ['sku', 'codigo', 'código', 'descricao', 'descrição', 'quantidade', 'qtd', 'custo'];
     let headerIdx = lines.findIndex((l) =>
       headerKeywords.some((k) => l.toLowerCase().includes(k)),
@@ -100,11 +189,13 @@ export class StockService {
     if (headerIdx < 0) headerIdx = 0;
 
     const headerLine = lines[headerIdx];
-    // Split header by common delimiters (tab, multiple spaces, | or ;)
-    const delimiter = headerLine.includes('\t') ? '\t'
-      : headerLine.includes('|') ? '|'
-      : headerLine.includes(';') ? ';'
-      : /\s{2,}/;
+    const delimiter = headerLine.includes('\t')
+      ? '\t'
+      : headerLine.includes('|')
+        ? '|'
+        : headerLine.includes(';')
+          ? ';'
+          : /\s{2,}/;
 
     const headers = headerLine.split(delimiter).map((h) => h.trim().toLowerCase());
     const dataLines = lines.slice(headerIdx + 1);
@@ -113,16 +204,22 @@ export class StockService {
     let rowNum = headerIdx + 2;
 
     for (const line of dataLines) {
-      if (!line || line.length < 3) { rowNum++; continue; }
+      if (!line || line.length < 3) {
+        rowNum++;
+        continue;
+      }
 
       const cells = line.split(delimiter).map((c) => c.trim());
-      if (cells.length < 2) { rowNum++; continue; }
+      if (cells.length < 2) {
+        rowNum++;
+        continue;
+      }
 
-      // Build row object mapping headers to cells
       const row: Record<string, unknown> = {};
-      headers.forEach((h, i) => { if (cells[i] !== undefined) row[h] = cells[i]; });
+      headers.forEach((h, i) => {
+        if (cells[i] !== undefined) row[h] = cells[i];
+      });
 
-      // If no headers matched, try positional: col0=sku, col1=description, col2=qty, col3=unitCost
       if (!row['sku'] && !row['codigo'] && !row['código'] && cells.length >= 2) {
         row['sku'] = cells[0];
         row['descricao'] = cells[1];
@@ -133,7 +230,6 @@ export class StockService {
       }
 
       const parsed = this.validateRow(row, rowNum);
-      // Skip lines that look like page headers/footers (all errors AND very short sku)
       if (parsed.errors.length === 0 || parsed.sku.length > 0) {
         rows.push(parsed);
       }
