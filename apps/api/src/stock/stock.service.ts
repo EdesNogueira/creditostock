@@ -81,12 +81,15 @@ export class StockService {
 
   async parsePdf(buffer: Buffer): Promise<StockRowPreview[]> {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfParseLib = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
-    const data = await pdfParseLib(buffer);
-    const lines = data.text
+    const { PDFParse } = require('pdf-parse');
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    await parser.load();
+    const result = await parser.getText();
+    const fullText: string = result.pages.map((p: { text: string }) => p.text).join('\n');
+    const lines: string[] = fullText
       .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
+      .map((l: string) => l.trim())
+      .filter((l: string) => l.length > 0);
 
     if (lines.length === 0) {
       throw new BadRequestException('PDF não contém texto legível. Use um PDF com texto selecionável (não escaneado).');
