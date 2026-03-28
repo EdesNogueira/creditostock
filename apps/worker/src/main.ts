@@ -122,7 +122,9 @@ nfeImportQueue.process('process-nfe-items', async (job) => {
     const sku = String(prod.cProd ?? '');
     const ean = String(prod.cEAN ?? '');
 
-    let product = await prisma.product.findFirst({ where: { sku } });
+    let product = await prisma.product.findFirst({
+      where: { OR: [{ sku }, { sku: sku.replace(/^0+/, '') || '0' }] },
+    });
     if (!product && ean && ean !== 'SEM GTIN') {
       product = await prisma.product.findFirst({ where: { ean } });
     }
@@ -166,13 +168,16 @@ matchingQueue.process('run-matching', async (job) => {
     orderBy: { nfeDocument: { dataEmissao: 'asc' } },
   });
 
+  const stripZeros = (s: string) => s.replace(/^0+/, '') || '0';
   let matchCount = 0;
 
   for (const si of stockItems) {
     if (si.productMatches.length > 0) continue;
 
-    // 1. Exact SKU match
-    let matched = nfeItems.find((ni) => ni.cProd === si.rawSku);
+    const siSku = stripZeros(si.rawSku);
+
+    // 1. SKU match (ignoring leading zeros)
+    let matched = nfeItems.find((ni) => stripZeros(ni.cProd) === siSku);
     let matchType: 'EXACT_SKU' | 'EXACT_EAN' | 'ALIAS' | 'FUZZY_DESCRIPTION_NCM' | null = null;
 
     if (matched) {
