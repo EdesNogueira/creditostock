@@ -4,8 +4,6 @@ import { Queue } from 'bull';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import * as XLSX from 'xlsx';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require('pdf-parse');
 
 export interface StockRowPreview {
   row: number;
@@ -82,7 +80,9 @@ export class StockService {
   }
 
   async parsePdf(buffer: Buffer): Promise<StockRowPreview[]> {
-    const data = await pdfParse(buffer);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParseLib = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string }>;
+    const data = await pdfParseLib(buffer);
     const lines = data.text
       .split('\n')
       .map((l) => l.trim())

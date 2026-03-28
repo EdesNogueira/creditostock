@@ -111,9 +111,6 @@ importers:
       '@types/passport-local':
         specifier: ^1.0.38
         version: 1.0.38
-      '@types/pdf-parse':
-        specifier: ^1.1.5
-        version: 1.1.5
       prisma:
         specifier: ^5.13.0
         version: 5.22.0
@@ -1636,9 +1633,6 @@ packages:
 
   '@types/passport@1.0.17':
     resolution: {integrity: sha512-aciLyx+wDwT2t2/kJGJR2AEeBz0nJU4WuRX04Wu9Dqc5lSUtwu0WERPHYsLhF9PtseiAMPBGNUOtFjxZ56prsg==}
-
-  '@types/pdf-parse@1.1.5':
-    resolution: {integrity: sha512-kBfrSXsloMnUJOKi25s3+hRmkycHfLK6A09eRGqF/N8BkQoPUmaCr+q8Cli5FnfohEz/rsv82zAiPz/LXtOGhA==}
 
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
@@ -5433,10 +5427,6 @@ snapshots:
   '@types/passport@1.0.17':
     dependencies:
       '@types/express': 5.0.6
-
-  '@types/pdf-parse@1.1.5':
-    dependencies:
-      '@types/node': 20.19.37
 
   '@types/prop-types@15.7.15': {}
 
