@@ -241,12 +241,69 @@ pnpm db:push --force-reset && pnpm db:seed
 
 ---
 
-## Próximos passos (pós-MVP)
+## Módulo de Transição ICMS-ST
 
+O sistema inclui um módulo completo para apuração de créditos na transição de ICMS-ST para regime normal, conforme reforma tributária.
+
+### Funcionalidades
+
+- **Regras configuráveis** por UF, NCM, CEST, CFOP, CST e data de vigência
+- **3 métodos de cálculo**: proporcional ST only, ST + FCP-ST, ou revisão manual
+- **Parser XML completo**: extrai todos os campos ICMS-ST, FCP-ST, CEST, orig, modBCST etc.
+- **FIFO real**: alocação parcial, múltiplas notas por item, controle de saldo por NfeItem
+- **Ledger auditável**: extrato de créditos com geração, uso, bloqueio, ajuste e estorno
+- **Dossiê expandido**: CSV e JSON com todos os campos fiscais, crédito calculado e pendências
+- **Issues automáticas**: NCM/CFOP/CST incompatível, UF incorreta, dados ST insuficientes
+
+### Limitações jurídicas
+
+O sistema é uma ferramenta de **apoio à apuração**, não substitui parecer tributário. A regra jurídica final deve ser parametrizada e revisada por contador/tributarista. Nenhuma fórmula é hardcoded — tudo é configurável por regra de transição.
+
+### Endpoints da Transição ST
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/tax-transition/rules` | Listar regras de transição |
+| POST | `/tax-transition/rules` | Criar regra |
+| PUT | `/tax-transition/rules/:id` | Atualizar regra |
+| DELETE | `/tax-transition/rules/:id` | Remover regra |
+| GET | `/transition-credits` | Listar lotes de crédito |
+| GET | `/transition-credits/:id` | Detalhe do lote |
+| GET | `/transition-credits/balance/:branchId` | Saldo de crédito por filial |
+| POST | `/transition-credits/:id/adjust` | Ajuste manual |
+| POST | `/transition-credits/:id/block` | Bloquear lote |
+| GET | `/transition-ledger` | Extrato do ledger |
+| POST | `/calculations/run` | Executar cálculo (kind=ST_TRANSITION) |
+| GET | `/dossiers/:id/export-json` | Dossiê completo em JSON |
+
+### Novos modelos de dados
+
+- `TaxTransitionRule` — regras configuráveis por UF/NCM/CEST/CFOP/CST
+- `TransitionCreditLot` — lote de crédito por item de estoque x NF-e
+- `TransitionCreditLedgerEntry` — extrato contábil de créditos
+- `NfeItem` expandido — 17+ campos de ICMS-ST/FCP-ST
+
+### Como testar com fixtures
+
+```bash
+# Rodar testes (66 testes em 5 suítes)
+cd apps/api && pnpm test
+
+# Rodar seed de transição com fixture real
+cd apps/api && pnpm demo:transition
+```
+
+Os fixtures estão em `fixtures/`:
+- `sample-nfe-real.xml` — NF-e real com ICMS-ST (Boticário/Calamo, MS→MT)
+- `estoque-retaguarda.pdf` — PDF de estoque no formato RetaguardaGB
+
+---
+
+## Próximos passos
+
+- [ ] Frontend completo para transição ST (telas de regras, cálculos, ledger)
 - [ ] Geração de PDF/ZIP de dossiês com PDFKit
-- [ ] Multi-tenant com Row Level Security no PostgreSQL
+- [ ] Multi-tenant com Row Level Security
 - [ ] Webhooks para integração com ERP
-- [ ] SEFAZ XML signing validation
 - [ ] Export para planilha SPED
-- [ ] Notificações por e-mail (Bull + Nodemailer)
-- [ ] Testes E2E com Playwright
+- [ ] Notificações por e-mail

@@ -81,12 +81,9 @@ export class StockService {
 
   async parsePdf(buffer: Buffer): Promise<StockRowPreview[]> {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PDFParse } = require('pdf-parse');
-    const parser = new PDFParse({ data: new Uint8Array(buffer) });
-    await parser.load();
-    const result = await parser.getText();
-    const fullText: string = result.pages.map((p: { text: string }) => p.text).join('\n');
-    const lines: string[] = fullText
+    const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string; numpages: number }>;
+    const data = await pdfParse(buffer);
+    const lines: string[] = data.text
       .split('\n')
       .map((l: string) => l.trim())
       .filter((l: string) => l.length > 0);
@@ -116,42 +113,97 @@ export class StockService {
   }
 
   private parseRetaguardaPdf(lines: string[]): StockRowPreview[] {
-    const UNITS = 'UND|UN|KG|G|MG|LT|L|ML|CX|RL|PC|PCT|PAR|PAC|FD|DZ|SC|TN|M|CM';
-    const BR_NUM = '(\\d{1,3}(?:\\.\\d{3})*,\\d{2,3})';
+    // RetaguardaGB format: pdf-parse extracts each column as a separate line.
+    // Pattern repeats every ~9 lines:
+    //   [0] loja (e.g. "901965")
+    //   [1] product code + description (e.g. "00000000001004 - FLORATTA DES COL MY BLUE 75ml")
+    //   [2] unit (e.g. "UND")
+    //   [3] estoque inicial (e.g. "21,000")
+    //   [4] entrada (e.g. "0,000")
+    //   [5] estoque final (e.g. "21,000")
+    //   [6] custo (e.g. "19,74")
+    //   [7] saída (e.g. "0,000")
+    //   [8] total (e.g. "414,54")
 
-    const lineRegex = new RegExp(
-      `^(\\d{4,8})\\s+(\\d{10,20})\\s+-\\s+(.+?)\\s+(${UNITS})\\s+` +
-        `${BR_NUM}[\\s\\t]+${BR_NUM}[\\s\\t]+${BR_NUM}[\\s\\t]+${BR_NUM}[\\s\\t]+${BR_NUM}[\\s\\t]+${BR_NUM}\\s*$`,
-      'i',
-    );
+    const UNITS_SET = new Set(['UND', 'UN', 'KG', 'G', 'MG', 'LT', 'L', 'ML', 'CX', 'RL', 'PC', 'PCT', 'PAR', 'PAC', 'FD', 'DZ', 'SC', 'TN', 'M', 'CM']);
+    const productRegex = /^(\d{8,20})\s*-\s*(.+)$/;
+    const brNumRegex = /^\d{1,3}(?:\.\d{3})*,\d{2,3}$/;
 
     const rows: StockRowPreview[] = [];
     let rowNum = 0;
 
-    for (const line of lines) {
-      const match = line.match(lineRegex);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const match = line.match(productRegex);
       if (!match) continue;
 
+      const productCode = match[1];
+      const description = match[2].trim();
+
+      // Look ahead for unit and numeric values
+      const ahead: string[] = [];
+      for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
+        const nextLine = lines[j].trim();
+        if (nextLine.match(productRegex)) break; // next product
+        ahead.push(nextLine);
+      }
+
+      // Find unit
+      let unit = 'UN';
+      const unitIdx = ahead.findIndex((l) => UNITS_SET.has(l.toUpperCase()));
+      if (unitIdx >= 0) {
+        unit = ahead[unitIdx].toUpperCase();
+        ahead.splice(unitIdx, 1);
+      }
+
+      // Extract numbers (Brazilian format)
+      const nums: number[] = [];
+      for (const a of ahead) {
+        if (a.match(brNumRegex)) {
+          nums.push(this.parseBrazilianNumber(a));
+        }
+        if (nums.length >= 6) break;
+      }
+
+      // We need at least: estoque final (index 2) and custo (index 3)
+      // Format: [estoqueInicial, entrada, estoqueFinal, custo, saida, total]
+      // But sometimes we get fewer numbers
+      if (nums.length < 4) continue;
+
       rowNum++;
-      const [, , productCode, description, unit, n0, n1, n2, n3, n4, n5] = match;
 
-      const nums = [n0, n1, n2, n3, n4, n5].map((s) => this.parseBrazilianNumber(s));
+      let quantity: number;
+      let unitCost: number;
+      let totalCost: number;
 
-      // pdf-parse extracts columns in this order for RetaguardaGB:
-      // [0]=Estoque Inicial, [1]=Entrada, [2]=Estoque Final, [3]=Custo, [4]=Saída, [5]=Total
-      let quantity = nums[2];
-      let unitCost = nums[3];
-      let totalCost = nums[5];
+      if (nums.length >= 6) {
+        // Full format: [estInicial, entrada, estFinal, custo, saida, total]
+        quantity = nums[2]; // estoque final
+        unitCost = nums[3]; // custo
+        totalCost = nums[5]; // total
+      } else if (nums.length >= 4) {
+        // Partial: try to figure out which is qty and cost
+        quantity = nums[2];
+        unitCost = nums[3];
+        totalCost = quantity * unitCost;
+      } else {
+        quantity = nums[0];
+        unitCost = nums[1];
+        totalCost = quantity * unitCost;
+      }
 
       // Cross-check: Total ≈ Quantity × UnitCost
-      if (totalCost > 0 && Math.abs(quantity * unitCost - totalCost) > 0.1) {
-        let found = false;
-        for (let qi = 0; qi < 5 && !found; qi++) {
-          for (let ci = qi + 1; ci < 5 && !found; ci++) {
-            if (Math.abs(nums[qi] * nums[ci] - totalCost) < 0.1) {
-              quantity = nums[qi];
-              unitCost = nums[ci];
-              found = true;
+      if (totalCost > 0 && quantity > 0 && unitCost > 0) {
+        const expected = quantity * unitCost;
+        if (Math.abs(expected - totalCost) > totalCost * 0.1) {
+          // Try finding the right pair
+          for (let qi = 0; qi < nums.length - 1; qi++) {
+            for (let ci = qi + 1; ci < nums.length; ci++) {
+              if (Math.abs(nums[qi] * nums[ci] - totalCost) < 0.5) {
+                quantity = nums[qi];
+                unitCost = nums[ci];
+                break;
+              }
             }
           }
         }
@@ -159,18 +211,18 @@ export class StockService {
 
       const errors: string[] = [];
       if (!productCode) errors.push('SKU é obrigatório');
-      if (!description.trim()) errors.push('Descrição é obrigatória');
+      if (!description) errors.push('Descrição é obrigatória');
       if (isNaN(quantity) || quantity < 0) errors.push('Quantidade inválida');
       if (isNaN(unitCost) || unitCost < 0) errors.push('Custo unitário inválido');
 
       rows.push({
         row: rowNum,
         sku: productCode,
-        description: description.trim(),
+        description,
         quantity: isNaN(quantity) ? 0 : quantity,
         unitCost: isNaN(unitCost) ? 0 : unitCost,
         totalCost: isNaN(totalCost) ? 0 : totalCost,
-        unit: unit.toUpperCase(),
+        unit,
         errors,
       });
     }

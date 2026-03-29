@@ -20,6 +20,10 @@ interface DashboardStats {
   pendingItems: number;
   importedXmlCount: number;
   confirmedMatches: number;
+  totalIcmsStCredit: number;
+  totalFcpStCredit: number;
+  totalTransitionCreditGenerated: number;
+  totalTransitionCreditAvailable: number;
 }
 
 // Chart data is built from current stats when available
@@ -80,6 +84,8 @@ export default function DashboardPage() {
         totalStockSkus: 0, reconciledPct: 0, potentialCredit: 0,
         approvedCredit: 0, blockedCredit: 0, pendingItems: 0,
         importedXmlCount: 0, confirmedMatches: 0,
+        totalIcmsStCredit: 0, totalFcpStCredit: 0,
+        totalTransitionCreditGenerated: 0, totalTransitionCreditAvailable: 0,
       }))
       .finally(() => setLoading(false));
   }, []);
@@ -316,6 +322,39 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+
+          {/* ST Transition section */}
+          {stats && stats.totalTransitionCreditGenerated > 0 && (
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl border border-purple-200/60 shadow-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-semibold text-purple-900">Crédito de Transição ICMS-ST</h3>
+                  <p className="text-xs text-purple-600 mt-0.5">Créditos apurados na transição de regime tributário</p>
+                </div>
+                <Link href="/transicao-st/calculos" className="text-xs text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1">
+                  Ver detalhes <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="bg-white/80 rounded-xl p-3 text-center border border-purple-100">
+                  <p className="text-xl font-bold text-purple-700">{formatCurrency(stats.totalIcmsStCredit)}</p>
+                  <p className="text-xs text-purple-600 mt-1">ICMS-ST Creditado</p>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3 text-center border border-purple-100">
+                  <p className="text-xl font-bold text-amber-700">{formatCurrency(stats.totalFcpStCredit)}</p>
+                  <p className="text-xs text-amber-600 mt-1">FCP-ST Creditado</p>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3 text-center border border-purple-100">
+                  <p className="text-xl font-bold text-green-700">{formatCurrency(stats.totalTransitionCreditGenerated)}</p>
+                  <p className="text-xs text-green-600 mt-1">Crédito Total Gerado</p>
+                </div>
+                <div className="bg-white/80 rounded-xl p-3 text-center border border-purple-100">
+                  <p className="text-xl font-bold text-emerald-700">{formatCurrency(stats.totalTransitionCreditAvailable)}</p>
+                  <p className="text-xs text-emerald-600 mt-1">Crédito Disponível</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Quick actions */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5">

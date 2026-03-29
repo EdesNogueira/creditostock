@@ -41,4 +41,9 @@ export class DossiersController {
       disposition: `attachment; filename="${filename}"`,
     });
   }
+
+  @Get(':id/export-json')
+  async exportJson(@Param('id') id: string) {
+    return this.service.exportJson(id);
+  }
 }

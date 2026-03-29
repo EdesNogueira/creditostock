@@ -489,25 +489,43 @@ transitionCalcQueue.process('run-transition-calculation', async (job) => {
         const si = alloc.stockSnapshotItem;
         const ni = alloc.nfeItem;
 
-        // Check rule filters
+        // Check rule filters — create Issues for skipped items
         if (rule.ncmRange && ni.ncm) {
           const [from, to] = rule.ncmRange.split('-').map(s => s.trim());
-          if (ni.ncm < from || (to && ni.ncm > to)) continue;
+          if (ni.ncm < from || (to && ni.ncm > to)) {
+            await tx.issue.create({ data: { stockSnapshotItemId: si.id, title: 'NCM fora da faixa da regra de transição', description: `SKU: ${si.rawSku} | NCM ${ni.ncm} fora da faixa ${rule.ncmRange} | Regra: ${rule.name}`, severity: 'LOW', status: 'OPEN' } });
+            continue;
+          }
         }
         if (rule.cfopList && ni.cfop) {
           const cfops = rule.cfopList.split(',').map(s => s.trim());
-          if (!cfops.includes(ni.cfop)) continue;
+          if (!cfops.includes(ni.cfop)) {
+            await tx.issue.create({ data: { stockSnapshotItemId: si.id, title: 'CFOP incompatível com a regra de transição', description: `SKU: ${si.rawSku} | CFOP ${ni.cfop} não está na lista ${rule.cfopList} | Regra: ${rule.name}`, severity: 'LOW', status: 'OPEN' } });
+            continue;
+          }
         }
         if (rule.cstList && ni.cst) {
           const csts = rule.cstList.split(',').map(s => s.trim());
-          if (!csts.includes(ni.cst)) continue;
+          if (!csts.includes(ni.cst)) {
+            await tx.issue.create({ data: { stockSnapshotItemId: si.id, title: 'CST incompatível com a regra de transição', description: `SKU: ${si.rawSku} | CST ${ni.cst} não está na lista ${rule.cstList} | Regra: ${rule.name}`, severity: 'LOW', status: 'OPEN' } });
+            continue;
+          }
         }
         if (rule.cestList && ni.cest) {
           const cests = rule.cestList.split(',').map(s => s.trim());
-          if (!cests.includes(ni.cest)) continue;
+          if (!cests.includes(ni.cest)) {
+            await tx.issue.create({ data: { stockSnapshotItemId: si.id, title: 'CEST incompatível com a regra de transição', description: `SKU: ${si.rawSku} | CEST ${ni.cest} não está na lista ${rule.cestList} | Regra: ${rule.name}`, severity: 'LOW', status: 'OPEN' } });
+            continue;
+          }
         }
         if (rule.stateFrom && ni.nfeDocument?.emitState && ni.nfeDocument.emitState !== rule.stateFrom) {
+          await tx.issue.create({ data: { stockSnapshotItemId: si.id, title: 'NF-e de UF incorreta para a regra de transição', description: `SKU: ${si.rawSku} | UF emitente: ${ni.nfeDocument.emitState} | Esperada: ${rule.stateFrom} | Regra: ${rule.name}`, severity: 'MEDIUM', status: 'OPEN' } });
           continue;
+        }
+
+        // Check if item has necessary ST data
+        if (dec(ni.vICMSST) === 0 && ni.stApplies) {
+          await tx.issue.create({ data: { stockSnapshotItemId: si.id, title: 'Item sem dados de ICMS-ST suficientes', description: `SKU: ${si.rawSku} | Item marcado como ST mas vICMSST = 0 | NF-e ${ni.nfeDocument?.numero}`, severity: 'HIGH', status: 'OPEN' } });
         }
 
         const allocQty = dec(alloc.allocatedQty);
