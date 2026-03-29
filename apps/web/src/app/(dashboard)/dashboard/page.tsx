@@ -23,14 +23,7 @@ interface DashboardStats {
   confirmedMatches: number;
 }
 
-const AREA_DATA = [
-  { month: 'Jul', potential: 180000, approved: 130000 },
-  { month: 'Ago', potential: 195000, approved: 145000 },
-  { month: 'Set', potential: 210000, approved: 158000 },
-  { month: 'Out', potential: 205000, approved: 155000 },
-  { month: 'Nov', potential: 222000, approved: 172000 },
-  { month: 'Dez', potential: 230000, approved: 185000 },
-];
+const AREA_DATA: { month: string; potential: number; approved: number }[] = [];
 
 const PIE_COLORS = ['#22c55e', '#ef4444', '#94a3b8'];
 
@@ -85,9 +78,9 @@ export default function DashboardPage() {
     dashboardApi.getStats()
       .then(setStats)
       .catch(() => setStats({
-        totalStockSkus: 200, reconciledPct: 75, potentialCredit: 230000,
-        approvedCredit: 185000, blockedCredit: 45000, pendingItems: 30,
-        importedXmlCount: 100, confirmedMatches: 150,
+        totalStockSkus: 0, reconciledPct: 0, potentialCredit: 0,
+        approvedCredit: 0, blockedCredit: 0, pendingItems: 0,
+        importedXmlCount: 0, confirmedMatches: 0,
       }))
       .finally(() => setLoading(false));
   }, []);
