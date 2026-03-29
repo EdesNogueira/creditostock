@@ -31,22 +31,44 @@ const STATUS_CONFIG: Record<string, { label: string; icon: React.ElementType; va
 
 export default function IssuesPage() {
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
+  const limit = 50;
 
-  const load = () => {
+  const load = (p = page) => {
     setLoading(true);
-    issuesApi.list({ status: statusFilter || undefined, severity: severityFilter || undefined, page: 1, limit: 100 })
-      .then((r) => setIssues(r.items ?? []))
-      .catch(() => setIssues([]))
+    issuesApi.list({ status: statusFilter || undefined, severity: severityFilter || undefined, page: p, limit })
+      .then((r) => { setIssues(r.items ?? []); setTotal(r.total ?? 0); })
+      .catch(() => { setIssues([]); setTotal(0); })
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [statusFilter, severityFilter]);
+  useEffect(() => { setPage(1); load(1); }, [statusFilter, severityFilter]);
 
-  const filtered = issues.filter(i => i.title.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.ceil(total / limit);
+
+  const handlePage = (p: number) => { setPage(p); load(p); };
+
+  const resolveAll = async () => {
+    if (!confirm(`Deseja marcar todas as ${total} pendências como resolvidas?`)) return;
+    setLoading(true);
+    try {
+      for (const issue of issues.filter(i => i.status !== 'RESOLVED')) {
+        await issuesApi.update(issue.id, { status: 'RESOLVED' });
+      }
+      load();
+    } catch { alert('Erro ao resolver pendências'); setLoading(false); }
+  };
+
+  const filtered = issues.filter(i =>
+    i.title.toLowerCase().includes(search.toLowerCase()) ||
+    (i.description ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (i.stockSnapshotItem?.rawSku ?? '').toLowerCase().includes(search.toLowerCase()),
+  );
 
   const counts = Object.fromEntries(
     Object.keys(SEV_CONFIG).map(sev => [sev, issues.filter(i => i.severity === sev).length])
@@ -78,8 +100,9 @@ export default function IssuesPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input placeholder="Buscar pendência..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+            <Input placeholder="Buscar por SKU ou descrição..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <span className="text-sm text-slate-500">{total} pendências no total</span>
           <div className="flex gap-1.5">
             {[
               { key: '', label: 'Todos' },
@@ -112,6 +135,13 @@ export default function IssuesPage() {
           </div>
         ) : (
           <div className="space-y-2">
+            {filtered.length > 0 && statusFilter !== 'RESOLVED' && (
+              <div className="flex justify-end mb-2">
+                <Button variant="outline" size="sm" onClick={resolveAll}>
+                  <CheckCircle2 className="mr-2 h-3.5 w-3.5" /> Resolver todas desta página
+                </Button>
+              </div>
+            )}
             {filtered.map(issue => {
               const sev = SEV_CONFIG[issue.severity];
               const st = STATUS_CONFIG[issue.status];
@@ -151,26 +181,52 @@ export default function IssuesPage() {
                       <StIcon className="h-3 w-3" />{st?.label ?? issue.status}
                     </Badge>
                     <span className="text-xs text-slate-400">{formatDate(issue.createdAt)}</span>
-                    {issue.status === 'OPEN' && (
-                      <button
-                        onClick={() => issuesApi.update(issue.id, { status: 'IN_PROGRESS' }).then(load)}
-                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                      >
-                        Tratar →
-                      </button>
-                    )}
-                    {issue.status === 'IN_PROGRESS' && (
-                      <button
-                        onClick={() => issuesApi.update(issue.id, { status: 'RESOLVED' }).then(load)}
-                        className="text-xs text-green-600 hover:text-green-700 font-medium"
-                      >
-                        Resolver →
-                      </button>
+                    {(issue.status === 'OPEN' || issue.status === 'IN_PROGRESS') && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => issuesApi.update(issue.id, { status: 'RESOLVED' }).then(() => load())}
+                          className="text-xs text-green-600 hover:text-green-700 font-medium"
+                        >
+                          Resolver
+                        </button>
+                        <button
+                          onClick={() => issuesApi.update(issue.id, { status: 'IGNORED' }).then(() => load())}
+                          className="text-xs text-slate-500 hover:text-slate-600 font-medium"
+                        >
+                          Ignorar
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-sm text-slate-500">
+              Página {page} de {totalPages} ({total} itens)
+            </span>
+            <div className="flex gap-1.5">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => handlePage(page - 1)}>
+                Anterior
+              </Button>
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                const p = totalPages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= totalPages - 3 ? totalPages - 6 + i : page - 3 + i;
+                if (p < 1 || p > totalPages) return null;
+                return (
+                  <Button key={p} variant={p === page ? 'default' : 'outline'} size="sm" onClick={() => handlePage(p)}>
+                    {p}
+                  </Button>
+                );
+              })}
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => handlePage(page + 1)}>
+                Próximo
+              </Button>
+            </div>
           </div>
         )}
       </div>
