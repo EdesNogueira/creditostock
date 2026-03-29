@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Building2, Plus, MapPin, Users, ChevronDown, ChevronRight, Pencil, Loader2 } from 'lucide-react';
+import { Building2, Plus, MapPin, Users, ChevronDown, ChevronRight, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,9 +26,10 @@ export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [modal, setModal] = useState<'company' | 'branch' | 'detail' | null>(null);
+  const [modal, setModal] = useState<'company' | 'branch' | 'editCompany' | 'editBranch' | null>(null);
   const [activeCo, setActiveCo] = useState<string | null>(null);
-  const [detailBranch, setDetailBranch] = useState<Branch | null>(null);
+  const [editingCoId, setEditingCoId] = useState<string | null>(null);
+  const [editingBrId, setEditingBrId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [cForm, setCForm] = useState({ name: '', cnpj: '', tradeName: '' });
   const [bForm, setBForm] = useState({ name: '', cnpj: '', city: '', state: 'SP', address: '' });
@@ -61,6 +62,34 @@ export default function CompaniesPage() {
     finally { setSaving(false); }
   };
 
+  const updateCompany = async () => {
+    if (!editingCoId || !cForm.name) return alert('Preencha o nome');
+    setSaving(true);
+    try { await companiesApi.update(editingCoId, cForm); setModal(null); load(); }
+    catch (e: unknown) { alert((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao atualizar'); }
+    finally { setSaving(false); }
+  };
+
+  const deleteCompany = async (id: string, name: string) => {
+    if (!confirm(`Tem certeza que deseja excluir a empresa "${name}"? Todas as filiais serão removidas.`)) return;
+    try { await companiesApi.update(id, { deleted: true }); load(); }
+    catch { alert('Erro ao excluir empresa. Verifique se não há dados vinculados.'); }
+  };
+
+  const updateBranch = async () => {
+    if (!editingBrId || !bForm.name) return alert('Preencha o nome');
+    setSaving(true);
+    try { await branchesApi.update(editingBrId, bForm); setModal(null); load(); }
+    catch (e: unknown) { alert((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao atualizar'); }
+    finally { setSaving(false); }
+  };
+
+  const deleteBranch = async (id: string, name: string) => {
+    if (!confirm(`Tem certeza que deseja excluir a filial "${name}"?`)) return;
+    try { await branchesApi.update(id, { deleted: true }); load(); }
+    catch { alert('Erro ao excluir filial. Verifique se não há dados vinculados.'); }
+  };
+
   return (
     <div>
       <Header title="Empresas & Filiais" subtitle="Gerencie empresas e estabelecimentos" />
@@ -87,7 +116,7 @@ export default function CompaniesPage() {
         ) : (
           <div className="space-y-3">
             {companies.map(co => (
-              <div key={co.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div key={co.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative">
                 {/* Company header */}
                 <button
                   className="w-full flex items-center gap-4 p-5 text-left hover:bg-slate-50/80 transition-colors"
@@ -108,6 +137,22 @@ export default function CompaniesPage() {
                     {expanded.has(co.id) ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
                   </div>
                 </button>
+                <div className="absolute top-3 right-16 flex gap-1">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingCoId(co.id); setCForm({ name: co.name, cnpj: co.cnpj, tradeName: co.tradeName ?? '' }); setModal('editCompany'); }}
+                    className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                    title="Editar empresa"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deleteCompany(co.id, co.name); }}
+                    className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
+                    title="Excluir empresa"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
 
                 {expanded.has(co.id) && (
                   <div className="border-t border-slate-100">
@@ -124,12 +169,20 @@ export default function CompaniesPage() {
                               <p className="text-sm font-medium text-slate-800 truncate">{br.name}</p>
                               {br.city && <p className="text-xs text-slate-400">{br.city} — {br.state}</p>}
                             </div>
-                            <button
-                              onClick={() => { setDetailBranch(br); setModal('detail'); }}
-                              className="flex-shrink-0 text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-                            >
-                              <Pencil className="h-3 w-3" /> Detalhes
-                            </button>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <button
+                                onClick={() => { setEditingBrId(br.id); setActiveCo(co.id); setBForm({ name: br.name, cnpj: br.cnpj ?? '', city: br.city ?? '', state: br.state ?? 'SP', address: br.address ?? '' }); setModal('editBranch'); }}
+                                className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                              >
+                                <Pencil className="h-3 w-3" /> Editar
+                              </button>
+                              <button
+                                onClick={() => deleteBranch(br.id, br.name)}
+                                className="text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1"
+                              >
+                                <Trash2 className="h-3 w-3" /> Excluir
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -214,28 +267,66 @@ export default function CompaniesPage() {
         </Modal>
       )}
 
-      {/* Modal: Detalhe da Filial */}
-      {modal === 'detail' && detailBranch && (
-        <Modal title={detailBranch.name} description="Dados do estabelecimento" onClose={() => { setModal(null); setDetailBranch(null); }}>
+      {/* Modal: Editar Empresa */}
+      {modal === 'editCompany' && (
+        <Modal title="Editar Empresa" description="Atualize os dados da empresa" onClose={() => setModal(null)}>
           <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Razão Social <span className="text-red-500">*</span></Label>
+              <Input value={cForm.name} onChange={e => setCForm({ ...cForm, name: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>CNPJ</Label>
+              <Input value={cForm.cnpj} onChange={e => setCForm({ ...cForm, cnpj: maskCnpj(e.target.value) })} maxLength={18} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nome Fantasia</Label>
+              <Input value={cForm.tradeName} onChange={e => setCForm({ ...cForm, tradeName: e.target.value })} />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={updateCompany} disabled={saving} className="flex-1">
+                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</> : 'Salvar'}
+              </Button>
+              <Button variant="outline" onClick={() => setModal(null)}>Cancelar</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal: Editar Filial */}
+      {modal === 'editBranch' && (
+        <Modal title="Editar Filial" description="Atualize os dados da filial" onClose={() => setModal(null)}>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Nome da Filial <span className="text-red-500">*</span></Label>
+              <Input value={bForm.name} onChange={e => setBForm({ ...bForm, name: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>CNPJ</Label>
+              <Input value={bForm.cnpj} onChange={e => setBForm({ ...bForm, cnpj: maskCnpj(e.target.value) })} maxLength={18} />
+            </div>
             <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'CNPJ', value: detailBranch.cnpj ?? '—' },
-                { label: 'Cidade', value: detailBranch.city ?? '—' },
-                { label: 'UF', value: detailBranch.state ?? '—' },
-                { label: 'Endereço', value: detailBranch.address ?? '—' },
-              ].map(({ label, value }) => (
-                <div key={label} className="space-y-1">
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</p>
-                  <p className="text-sm font-medium text-slate-900">{value}</p>
-                </div>
-              ))}
+              <div className="space-y-1.5">
+                <Label>Cidade</Label>
+                <Input value={bForm.city} onChange={e => setBForm({ ...bForm, city: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>UF</Label>
+                <select className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" value={bForm.state} onChange={e => setBForm({ ...bForm, state: e.target.value })}>
+                  {STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
             </div>
-            <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
-              <p className="text-xs text-slate-500 mb-1">ID do Sistema</p>
-              <p className="text-xs font-mono text-slate-600 break-all">{detailBranch.id}</p>
+            <div className="space-y-1.5">
+              <Label>Endereço</Label>
+              <Input value={bForm.address} onChange={e => setBForm({ ...bForm, address: e.target.value })} />
             </div>
-            <Button variant="outline" onClick={() => { setModal(null); setDetailBranch(null); }} className="w-full">Fechar</Button>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={updateBranch} disabled={saving} className="flex-1">
+                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</> : 'Salvar'}
+              </Button>
+              <Button variant="outline" onClick={() => setModal(null)}>Cancelar</Button>
+            </div>
           </div>
         </Modal>
       )}
