@@ -50,4 +50,27 @@ export class UsersService {
     await this.findOne(id);
     return this.prisma.user.delete({ where: { id } });
   }
+
+  async dismissOnboarding(id: string, version = 1) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { hasSeenOnboarding: true, onboardingVersion: version, onboardingDismissedAt: new Date() },
+      select: { id: true, hasSeenOnboarding: true, onboardingVersion: true },
+    });
+  }
+
+  async resetOnboarding(id: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { hasSeenOnboarding: false, onboardingVersion: 0, onboardingDismissedAt: null },
+      select: { id: true, hasSeenOnboarding: true },
+    });
+  }
+
+  async getOnboardingStatus(id: string) {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: { hasSeenOnboarding: true, onboardingVersion: true, onboardingDismissedAt: true },
+    });
+  }
 }

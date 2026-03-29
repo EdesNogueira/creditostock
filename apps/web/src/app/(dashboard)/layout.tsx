@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { MobileHeader } from '@/components/layout/mobile-header';
 import { ToastProvider } from '@/components/ui/toast';
+import { Onboarding } from '@/components/onboarding';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -36,6 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
+      <Onboarding />
     </div>
     </ToastProvider>
   );

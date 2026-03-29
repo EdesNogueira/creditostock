@@ -18,6 +18,7 @@ import { StorageModule } from './storage/storage.module';
 import { TaxRulesModule } from './tax-rules/tax-rules.module';
 import { TaxTransitionModule } from './tax-transition/tax-transition.module';
 import { TransitionCreditsModule } from './transition-credits/transition-credits.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { TransitionCreditsModule } from './transition-credits/transition-credits
     TaxRulesModule,
     TaxTransitionModule,
     TransitionCreditsModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

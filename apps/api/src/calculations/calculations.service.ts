@@ -83,6 +83,40 @@ export class CalculationsService {
 
   async getDashboardStats(branchId?: string) {
     const where = branchId ? { branchId } : {};
+
+    // Latest snapshot (most recent by referenceDate, status DONE)
+    const latestSnapshot = await this.prisma.stockSnapshot.findFirst({
+      where: { ...where, jobStatus: 'DONE' },
+      orderBy: { referenceDate: 'desc' },
+      select: { id: true, referenceDate: true, totalItems: true },
+    });
+
+    // Count distinct SKUs in latest snapshot
+    let distinctSkus = 0;
+    let totalStockItems = 0;
+    let totalStockValue = 0;
+    let matchedInSnapshot = 0;
+
+    if (latestSnapshot) {
+      const skuResult = await this.prisma.stockSnapshotItem.groupBy({
+        by: ['rawSku'],
+        where: { snapshotId: latestSnapshot.id },
+      });
+      distinctSkus = skuResult.length;
+
+      const agg = await this.prisma.stockSnapshotItem.aggregate({
+        where: { snapshotId: latestSnapshot.id },
+        _count: true,
+        _sum: { totalCost: true },
+      });
+      totalStockItems = agg._count;
+      totalStockValue = Number(agg._sum.totalCost ?? 0);
+
+      matchedInSnapshot = await this.prisma.productMatch.count({
+        where: { isConfirmed: true, stockSnapshotItem: { snapshotId: latestSnapshot.id } },
+      });
+    }
+
     const latestGeneral = await this.prisma.creditCalculation.findFirst({
       where: { ...where, status: 'DONE', kind: 'GENERAL_ICMS' },
       orderBy: { finishedAt: 'desc' },
@@ -92,24 +126,25 @@ export class CalculationsService {
       orderBy: { finishedAt: 'desc' },
     });
 
-    const stockTotal = await this.prisma.stockSnapshotItem.count({
-      where: branchId ? { snapshot: { branchId } } : {},
-    });
-    const matched = await this.prisma.productMatch.count({ where: { isConfirmed: true } });
     const nfeCount = await this.prisma.nfeDocument.count({ where });
     const issueCount = await this.prisma.issue.count({ where: { status: 'OPEN' } });
 
     const latest = latestTransition ?? latestGeneral;
+    const reconciledPct = totalStockItems > 0 ? (matchedInSnapshot / totalStockItems) * 100 : (latest?.reconciledPct ?? 0);
 
     return {
-      totalStockSkus: stockTotal,
-      reconciledPct: latest?.reconciledPct ?? 0,
+      totalStockSkus: distinctSkus,
+      totalStockItems,
+      totalStockValue,
+      reconciledPct,
       potentialCredit: Number(latest?.potentialCredit ?? 0),
       approvedCredit: Number(latest?.approvedCredit ?? 0),
       blockedCredit: Number(latest?.blockedCredit ?? 0),
       pendingItems: issueCount,
       importedXmlCount: nfeCount,
-      confirmedMatches: matched,
+      confirmedMatches: matchedInSnapshot,
+      latestSnapshotId: latestSnapshot?.id ?? null,
+      latestSnapshotDate: latestSnapshot?.referenceDate ?? null,
       // ST Transition specific
       totalIcmsStCredit: Number(latestTransition?.totalIcmsStCredit ?? 0),
       totalFcpStCredit: Number(latestTransition?.totalFcpStCredit ?? 0),

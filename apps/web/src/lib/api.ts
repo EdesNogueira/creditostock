@@ -169,6 +169,13 @@ export const transitionLedgerApi = {
     api.get('/transition-ledger', { params }).then((r) => r.data),
 };
 
+// Settings
+export const settingsApi = {
+  get: (companyId?: string) => api.get('/settings', { params: { companyId } }).then((r) => r.data),
+  update: (data: unknown) => api.put('/settings', data).then((r) => r.data),
+  getAutomationRuns: (limit?: number) => api.get('/settings/automation-runs', { params: { limit } }).then((r) => r.data),
+};
+
 // Audit
 export const auditApi = {
   list: (params?: { companyId?: string; entity?: string; page?: number; limit?: number }) =>

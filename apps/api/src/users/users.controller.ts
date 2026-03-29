@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 
@@ -25,4 +26,19 @@ export class UsersController {
 
   @Delete(':id')
   remove(@Param('id') id: string) { return this.service.remove(id); }
+
+  @Get('me/onboarding')
+  getOnboarding(@CurrentUser() user: { userId: string }) {
+    return this.service.getOnboardingStatus(user.userId);
+  }
+
+  @Put('me/onboarding/dismiss')
+  dismissOnboarding(@CurrentUser() user: { userId: string }) {
+    return this.service.dismissOnboarding(user.userId);
+  }
+
+  @Put('me/onboarding/reset')
+  resetOnboarding(@CurrentUser() user: { userId: string }) {
+    return this.service.resetOnboarding(user.userId);
+  }
 }

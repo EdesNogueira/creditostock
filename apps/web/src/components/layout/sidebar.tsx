@@ -4,29 +4,31 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { X } from 'lucide-react';
 import {
-  LayoutDashboard, Building2, Package, FileSpreadsheet,
+  LayoutDashboard, Building2, Package, FileSpreadsheet, Database,
   FileText, GitMerge, AlertCircle, Calculator,
   FolderOpen, History, LogOut, Scale, Users,
-  ArrowRightLeft, BookOpen,
+  ArrowRightLeft, BookOpen, Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '/empresas', icon: Building2, label: 'Empresas & Filiais' },
-  { href: '/catalogo', icon: Package, label: 'Estoque' },
-  { href: '/estoque', icon: FileSpreadsheet, label: 'Importar Estoque' },
-  { href: '/nfe-xml', icon: FileText, label: 'Importar NF-e' },
-  { href: '/conciliacao', icon: GitMerge, label: 'Conciliação' },
-  { href: '/pendencias', icon: AlertCircle, label: 'Pendências' },
-  { href: '/calculos', icon: Calculator, label: 'Créditos' },
-  { href: '/dossies', icon: FolderOpen, label: 'Dossiês' },
-  { href: '/regras-fiscais', icon: Scale, label: 'Regras Fiscais' },
-  { href: '/transicao-st/regras', icon: ArrowRightLeft, label: 'Transição ST' },
-  { href: '/transicao-st/calculos', icon: Calculator, label: 'Cálculo ST' },
-  { href: '/transicao-st/ledger', icon: BookOpen, label: 'Ledger ST' },
-  { href: '/auditoria', icon: History, label: 'Auditoria' },
-  { href: '/usuarios', icon: Users, label: 'Usuários' },
+  { href: '/dashboard',              icon: LayoutDashboard, label: 'Dashboard' },
+  { href: '/empresas',               icon: Building2,       label: 'Empresas & Filiais' },
+  { href: '/catalogo',               icon: Package,         label: 'Catálogo' },
+  { href: '/estoque-atual',          icon: Database,        label: 'Estoque Atual' },
+  { href: '/estoque',                icon: FileSpreadsheet, label: 'Importar Estoque' },
+  { href: '/nfe-xml',                icon: FileText,        label: 'Importar NF-e' },
+  { href: '/conciliacao',            icon: GitMerge,        label: 'Conciliação' },
+  { href: '/pendencias',             icon: AlertCircle,     label: 'Pendências' },
+  { href: '/calculos',               icon: Calculator,      label: 'Créditos' },
+  { href: '/dossies',                icon: FolderOpen,      label: 'Dossiês' },
+  { href: '/regras-fiscais',         icon: Scale,           label: 'Regras Fiscais' },
+  { href: '/transicao-st/regras',    icon: ArrowRightLeft,  label: 'Transição ST' },
+  { href: '/transicao-st/calculos',  icon: Calculator,      label: 'Cálculo ST' },
+  { href: '/transicao-st/ledger',    icon: BookOpen,        label: 'Ledger ST' },
+  { href: '/auditoria',              icon: History,         label: 'Auditoria' },
+  { href: '/configuracoes',          icon: Settings,        label: 'Configurações' },
+  { href: '/usuarios',               icon: Users,           label: 'Usuários' },
 ];
 
 interface SidebarProps {
@@ -48,7 +50,7 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
       'flex flex-col bg-[#0c1425] text-white h-full',
       mobile ? 'w-72' : 'w-60',
     )}>
-      {/* Logo section */}
+      {/* Logo */}
       <div className="flex h-16 items-center justify-between px-5 border-b border-white/[0.06]">
         <Link href="/dashboard" className="flex items-center group flex-1 min-w-0">
           <Image
