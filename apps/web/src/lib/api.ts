@@ -45,6 +45,7 @@ export const companiesApi = {
   get: (id: string) => api.get(`/companies/${id}`).then((r) => r.data),
   create: (data: unknown) => api.post('/companies', data).then((r) => r.data),
   update: (id: string, data: unknown) => api.put(`/companies/${id}`, data).then((r) => r.data),
+  delete: (id: string) => api.delete(`/companies/${id}`).then((r) => r.data),
 };
 
 // Branches
@@ -53,6 +54,7 @@ export const branchesApi = {
   get: (id: string) => api.get(`/branches/${id}`).then((r) => r.data),
   create: (data: unknown) => api.post('/branches', data).then((r) => r.data),
   update: (id: string, data: unknown) => api.put(`/branches/${id}`, data).then((r) => r.data),
+  delete: (id: string) => api.delete(`/branches/${id}`).then((r) => r.data),
 };
 
 // Users

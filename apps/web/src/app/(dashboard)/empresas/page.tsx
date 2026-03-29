@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { companiesApi, branchesApi } from '@/lib/api';
+import { useNotify } from '@/lib/use-notify';
 
 interface Branch { id: string; name: string; cnpj?: string; city?: string; state?: string; address?: string; }
 interface Company { id: string; name: string; cnpj: string; tradeName?: string; branches: Branch[]; _count?: { users: number }; }
@@ -33,6 +34,7 @@ export default function CompaniesPage() {
   const [saving, setSaving] = useState(false);
   const [cForm, setCForm] = useState({ name: '', cnpj: '', tradeName: '' });
   const [bForm, setBForm] = useState({ name: '', cnpj: '', city: '', state: 'SP', address: '' });
+  const notify = useNotify();
 
   const load = () => {
     setLoading(true);
@@ -47,47 +49,47 @@ export default function CompaniesPage() {
   const toggle = (id: string) => setExpanded(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const createCompany = async () => {
-    if (!cForm.name || !cForm.cnpj) return alert('Preencha nome e CNPJ');
+    if (!cForm.name || !cForm.cnpj) return notify.warning('Preencha nome e CNPJ');
     setSaving(true);
     try { await companiesApi.create(cForm); setModal(null); setCForm({ name: '', cnpj: '', tradeName: '' }); load(); }
-    catch (e: unknown) { alert((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro'); }
+    catch (e: unknown) { notify.handleError(e, 'Erro ao criar empresa'); }
     finally { setSaving(false); }
   };
 
   const createBranch = async () => {
-    if (!bForm.name || !bForm.cnpj || !activeCo) return alert('Preencha nome e CNPJ');
+    if (!bForm.name || !bForm.cnpj || !activeCo) return notify.warning('Preencha nome e CNPJ');
     setSaving(true);
     try { await branchesApi.create({ ...bForm, companyId: activeCo }); setModal(null); setBForm({ name: '', cnpj: '', city: '', state: 'SP', address: '' }); load(); }
-    catch (e: unknown) { alert((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro'); }
+    catch (e: unknown) { notify.handleError(e, 'Erro ao criar filial'); }
     finally { setSaving(false); }
   };
 
   const updateCompany = async () => {
-    if (!editingCoId || !cForm.name) return alert('Preencha o nome');
+    if (!editingCoId || !cForm.name) return notify.warning('Preencha o nome');
     setSaving(true);
     try { await companiesApi.update(editingCoId, cForm); setModal(null); load(); }
-    catch (e: unknown) { alert((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao atualizar'); }
+    catch (e: unknown) { notify.handleError(e, 'Erro ao atualizar empresa'); }
     finally { setSaving(false); }
   };
 
   const deleteCompany = async (id: string, name: string) => {
     if (!confirm(`Tem certeza que deseja excluir a empresa "${name}"? Todas as filiais serão removidas.`)) return;
-    try { await companiesApi.update(id, { deleted: true }); load(); }
-    catch { alert('Erro ao excluir empresa. Verifique se não há dados vinculados.'); }
+    try { await companiesApi.delete(id); load(); }
+    catch (e) { notify.handleError(e, 'Erro ao excluir empresa. Verifique se não há dados vinculados.'); }
   };
 
   const updateBranch = async () => {
-    if (!editingBrId || !bForm.name) return alert('Preencha o nome');
+    if (!editingBrId || !bForm.name) return notify.warning('Preencha o nome');
     setSaving(true);
     try { await branchesApi.update(editingBrId, bForm); setModal(null); load(); }
-    catch (e: unknown) { alert((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao atualizar'); }
+    catch (e: unknown) { notify.handleError(e, 'Erro ao atualizar filial'); }
     finally { setSaving(false); }
   };
 
   const deleteBranch = async (id: string, name: string) => {
     if (!confirm(`Tem certeza que deseja excluir a filial "${name}"?`)) return;
-    try { await branchesApi.update(id, { deleted: true }); load(); }
-    catch { alert('Erro ao excluir filial. Verifique se não há dados vinculados.'); }
+    try { await branchesApi.delete(id); load(); }
+    catch (e) { notify.handleError(e, 'Erro ao excluir filial. Verifique se não há dados vinculados.'); }
   };
 
   return (

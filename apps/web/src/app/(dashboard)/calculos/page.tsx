@@ -11,6 +11,7 @@ import { BranchSelector } from '@/components/branch-selector';
 import { SnapshotSelector } from '@/components/snapshot-selector';
 import { HelpTooltip } from '@/components/help-tooltip';
 import { calculationsApi } from '@/lib/api';
+import { useNotify } from '@/lib/use-notify';
 import { formatCurrency, formatDate, formatPercent } from '@/lib/utils';
 
 interface Calculation {
@@ -55,6 +56,7 @@ export default function CalculationsPage() {
   const [branchId, setBranchId] = useState('');
   const [snapshotId, setSnapshotId] = useState('');
   const [mode, setMode] = useState('ASSISTED');
+  const notify = useNotify();
 
   const load = () => {
     calculationsApi.list()
@@ -66,13 +68,13 @@ export default function CalculationsPage() {
   useEffect(() => { load(); }, []);
 
   const handleRun = async () => {
-    if (!branchId) { alert('Selecione uma filial'); return; }
+    if (!branchId) { notify.warning('Selecione uma filial'); return; }
     setRunning(true);
     try {
       await calculationsApi.run({ branchId, snapshotId: snapshotId || undefined, mode });
       setTimeout(load, 1500);
-    } catch {
-      alert('Erro ao iniciar cálculo');
+    } catch (e: unknown) {
+      notify.handleError(e, 'Erro ao iniciar cálculo');
     } finally {
       setRunning(false);
     }

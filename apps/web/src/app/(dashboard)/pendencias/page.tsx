@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { issuesApi } from '@/lib/api';
+import { useNotify } from '@/lib/use-notify';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +38,7 @@ export default function IssuesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [severityFilter, setSeverityFilter] = useState('');
+  const notify = useNotify();
   const limit = 50;
 
   const load = (p = page) => {
@@ -61,7 +63,7 @@ export default function IssuesPage() {
         await issuesApi.update(issue.id, { status: 'RESOLVED' });
       }
       load();
-    } catch { alert('Erro ao resolver pendências'); setLoading(false); }
+    } catch (e) { notify.handleError(e, 'Erro ao resolver pendências'); setLoading(false); }
   };
 
   const filtered = issues.filter(i =>

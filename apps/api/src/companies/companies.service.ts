@@ -32,7 +32,14 @@ export class CompaniesService {
   }
 
   async remove(id: string) {
-    await this.findOne(id);
-    return this.prisma.company.delete({ where: { id } });
+    const company = await this.findOne(id);
+    // Clean up references that don't cascade
+    await this.prisma.$transaction(async (tx) => {
+      // Remove audit logs referencing this company
+      await tx.auditLog.deleteMany({ where: { companyId: id } });
+      // Delete company (branches and their children cascade)
+      await tx.company.delete({ where: { id } });
+    });
+    return { deleted: true, name: company.name };
   }
 }

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { usersApi } from '@/lib/api';
+import { useNotify } from '@/lib/use-notify';
 import { formatDate } from '@/lib/utils';
 
 interface UserData {
@@ -30,6 +31,7 @@ export default function UsuariosPage() {
 
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'ANALYST', companyId: '' });
   const [editForm, setEditForm] = useState({ name: '', role: 'ANALYST', isActive: true });
+  const notify = useNotify();
 
   const load = () => {
     setLoading(true);
@@ -42,7 +44,7 @@ export default function UsuariosPage() {
   useEffect(() => { load(); }, []);
 
   const create = async () => {
-    if (!form.name || !form.email || !form.password) return alert('Preencha todos os campos obrigatórios');
+    if (!form.name || !form.email || !form.password) { notify.warning('Preencha todos os campos obrigatórios'); return; }
     setSaving(true);
     try {
       await usersApi.create(form);
@@ -50,7 +52,7 @@ export default function UsuariosPage() {
       setForm({ name: '', email: '', password: '', role: 'ANALYST', companyId: '' });
       load();
     } catch (e: unknown) {
-      alert((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Erro ao criar usuário');
+      notify.handleError(e, 'Erro ao criar usuário');
     } finally { setSaving(false); }
   };
 
@@ -61,15 +63,15 @@ export default function UsuariosPage() {
   };
 
   const saveEdit = async () => {
-    if (!editing || !editForm.name) return alert('Preencha o nome');
+    if (!editing || !editForm.name) { notify.warning('Preencha o nome'); return; }
     setSaving(true);
     try {
       await usersApi.update(editing.id, editForm);
       setModal(null);
       setEditing(null);
       load();
-    } catch {
-      alert('Erro ao atualizar usuário');
+    } catch (e: unknown) {
+      notify.handleError(e, 'Erro ao atualizar usuário');
     } finally { setSaving(false); }
   };
 
@@ -77,7 +79,7 @@ export default function UsuariosPage() {
     try {
       await usersApi.update(u.id, { isActive: !u.isActive });
       load();
-    } catch { alert('Erro ao alterar status'); }
+    } catch (e: unknown) { notify.handleError(e, 'Erro ao alterar status'); }
   };
 
   const deleteUser = async () => {
@@ -87,8 +89,8 @@ export default function UsuariosPage() {
       await usersApi.delete(deleteConfirm.id);
       setDeleteConfirm(null);
       load();
-    } catch {
-      alert('Erro ao excluir usuário');
+    } catch (e: unknown) {
+      notify.handleError(e, 'Erro ao excluir usuário');
     } finally { setSaving(false); }
   };
 

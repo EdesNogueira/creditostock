@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { HelpTooltip } from '@/components/help-tooltip';
 import { taxTransitionApi } from '@/lib/api';
+import { useNotify } from '@/lib/use-notify';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +36,7 @@ export default function TransicaoRegrasPage() {
   const [modal, setModal] = useState<'create' | 'edit' | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const notify = useNotify();
 
   const load = () => { taxTransitionApi.listRules().then((d: TransitionRule[]) => setRules(Array.isArray(d) ? d : [])).catch(() => setRules([])).finally(() => setLoading(false)); };
   useEffect(() => { load(); }, []);
@@ -46,14 +48,14 @@ export default function TransicaoRegrasPage() {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.stateFrom || !form.effectiveFrom) return alert('Preencha nome, UF e data de vigência');
+    if (!form.name || !form.stateFrom || !form.effectiveFrom) { notify.warning('Preencha nome, UF e data de vigência'); return; }
     setSaving(true);
     try {
       const payload = { ...form, effectiveTo: form.effectiveTo || undefined, stateTo: form.stateTo || undefined };
       if (editId) { await taxTransitionApi.updateRule(editId, payload); }
       else { await taxTransitionApi.createRule(payload); }
       setModal(null); setEditId(null); setForm(emptyForm); load();
-    } catch { alert('Erro ao salvar regra'); } finally { setSaving(false); }
+    } catch (e: unknown) { notify.handleError(e, 'Erro ao salvar regra'); } finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => { if (!confirm('Excluir esta regra?')) return; await taxTransitionApi.deleteRule(id); load(); };

@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { productsApi } from '@/lib/api';
+import { useNotify } from '@/lib/use-notify';
 
 interface Alias {
   id: string;
@@ -57,6 +58,7 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false);
   // Alias form
   const [aliasForm, setAliasForm] = useState({ aliasType: 'supplier_code', aliasValue: '' });
+  const notify = useNotify();
 
   const load = (q?: string) => {
     setLoading(true);
@@ -83,7 +85,7 @@ export default function ProductsPage() {
   };
 
   const handleSave = async () => {
-    if (!form.sku || !form.description) { alert('SKU e descrição são obrigatórios'); return; }
+    if (!form.sku || !form.description) { notify.warning('SKU e descrição são obrigatórios'); return; }
     setSaving(true);
     try {
       const data = {
@@ -101,8 +103,7 @@ export default function ProductsPage() {
       setShowForm(false);
       load();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      alert(err?.response?.data?.message ?? 'Erro ao salvar produto');
+      notify.handleError(e, 'Erro ao salvar produto');
     } finally {
       setSaving(false);
     }
@@ -117,8 +118,8 @@ export default function ProductsPage() {
       const updated = await productsApi.get(editProduct.id);
       setEditProduct(updated);
       load();
-    } catch {
-      alert('Erro ao adicionar alias');
+    } catch (e) {
+      notify.handleError(e, 'Erro ao adicionar alias');
     } finally {
       setSaving(false);
     }
@@ -134,8 +135,8 @@ export default function ProductsPage() {
         setForm({ sku: updated.sku, ean: updated.ean ?? '', description: updated.description, ncm: updated.ncm ?? '', unit: updated.unit });
       }
       load();
-    } catch {
-      alert('Erro ao remover alias');
+    } catch (e) {
+      notify.handleError(e, 'Erro ao remover alias');
     }
   };
 

@@ -36,7 +36,18 @@ export class BranchesService {
   }
 
   async remove(id: string) {
-    await this.findOne(id);
-    return this.prisma.branch.delete({ where: { id } });
+    const branch = await this.findOne(id);
+    // Clean up non-cascading references before deleting
+    await this.prisma.$transaction(async (tx) => {
+      // Issues may reference stock items from this branch's snapshots
+      const snapshots = await tx.stockSnapshot.findMany({ where: { branchId: id }, select: { id: true } });
+      const snapshotIds = snapshots.map(s => s.id);
+      if (snapshotIds.length > 0) {
+        await tx.issue.deleteMany({ where: { stockSnapshotItem: { snapshotId: { in: snapshotIds } } } });
+      }
+      // Delete branch (cascades to snapshots, nfe, calculations, dossiers, etc)
+      await tx.branch.delete({ where: { id } });
+    });
+    return { deleted: true, name: branch.name };
   }
 }

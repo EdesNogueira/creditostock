@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { taxRulesApi } from '@/lib/api';
+import { useNotify } from '@/lib/use-notify';
 
 interface TaxRule {
   id: string;
@@ -32,6 +33,7 @@ export default function TaxRulesPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [filterState, setFilterState] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const notify = useNotify();
 
   const load = () => {
     taxRulesApi.list(filterState || undefined)
@@ -43,7 +45,7 @@ export default function TaxRulesPage() {
   useEffect(() => { load(); }, [filterState]);
 
   const handleSubmit = async () => {
-    if (!form.name || !form.state) { alert('Preencha nome e UF'); return; }
+    if (!form.name || !form.state) { notify.warning('Preencha nome e UF'); return; }
     setSaving(true);
     try {
       if (editId) {
@@ -55,8 +57,8 @@ export default function TaxRulesPage() {
       setEditId(null);
       setForm(emptyForm);
       load();
-    } catch {
-      alert('Erro ao salvar regra');
+    } catch (e: unknown) {
+      notify.handleError(e, 'Erro ao salvar regra');
     } finally {
       setSaving(false);
     }

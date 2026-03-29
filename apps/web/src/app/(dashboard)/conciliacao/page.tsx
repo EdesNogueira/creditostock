@@ -13,6 +13,7 @@ import { BranchSelector } from '@/components/branch-selector';
 import { SnapshotSelector } from '@/components/snapshot-selector';
 import { HelpTooltip } from '@/components/help-tooltip';
 import { reconciliationApi } from '@/lib/api';
+import { useNotify } from '@/lib/use-notify';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
 
 interface ReconciliationItem {
@@ -48,6 +49,7 @@ export default function ReconciliationPage() {
   const [branchId, setBranchId] = useState('');
   const [snapshotId, setSnapshotId] = useState('');
   const [stats, setStats] = useState<{ total: number; matched: number; unmatched: number; allocated: number; reconciledPct: number } | null>(null);
+  const notify = useNotify();
 
   const loadItems = (sid: string) => {
     if (!sid) { setItems([]); return; }
@@ -79,13 +81,13 @@ export default function ReconciliationPage() {
   };
 
   const handleMatching = async () => {
-    if (!snapshotId) { alert('Selecione um snapshot de estoque primeiro'); return; }
+    if (!snapshotId) { notify.warning('Selecione um snapshot de estoque primeiro'); return; }
     setMatching(true);
     try {
       await reconciliationApi.runMatching(snapshotId);
-      alert('Job de matching iniciado! Aguarde alguns segundos e recarregue a página.');
-    } catch {
-      alert('Erro ao iniciar matching');
+      notify.success('Job de matching iniciado!', 'Aguarde alguns segundos e recarregue a página.');
+    } catch (e) {
+      notify.handleError(e, 'Erro ao iniciar matching');
     } finally {
       setMatching(false);
     }

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { BranchSelector } from '@/components/branch-selector';
 import { dossiersApi } from '@/lib/api';
+import { useNotify } from '@/lib/use-notify';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -32,16 +33,17 @@ export default function DossiersPage() {
   const [title, setTitle] = useState('');
   const [branchId, setBranchId] = useState('');
   const [notes, setNotes] = useState('');
+  const notify = useNotify();
 
   const load = () => dossiersApi.list().then(setDossiers).catch(() => setDossiers([])).finally(() => setLoading(false));
 
   useEffect(() => { load(); }, []);
 
   const create = async () => {
-    if (!title || !branchId) return alert('Preencha título e filial');
+    if (!title || !branchId) { notify.warning('Preencha título e filial'); return; }
     setSaving(true);
     try { await dossiersApi.create({ branchId, title, notes }); setShowModal(false); setTitle(''); setNotes(''); setBranchId(''); load(); }
-    catch { alert('Erro ao criar dossiê'); }
+    catch (e: unknown) { notify.handleError(e, 'Erro ao criar dossiê'); }
     finally { setSaving(false); }
   };
 
