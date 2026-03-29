@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { GitMerge, Search, Eye, Link2, Play, RefreshCw, Loader2 } from 'lucide-react';
+import { GitMerge, Search, Link2, Play, RefreshCw, Loader2 } from 'lucide-react';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { BranchSelector } from '@/components/branch-selector';
 import { SnapshotSelector } from '@/components/snapshot-selector';
 import { HelpTooltip } from '@/components/help-tooltip';
 import { reconciliationApi } from '@/lib/api';
@@ -41,30 +41,36 @@ const matchTypeBadge = (type: string) => {
 };
 
 export default function ReconciliationPage() {
-  const router = useRouter();
   const [items, setItems] = useState<ReconciliationItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [matching, setMatching] = useState(false);
   const [search, setSearch] = useState('');
+  const [branchId, setBranchId] = useState('');
   const [snapshotId, setSnapshotId] = useState('');
   const [stats, setStats] = useState<{ total: number; matched: number; unmatched: number; allocated: number; reconciledPct: number } | null>(null);
 
-  const loadItems = (sid?: string) => {
+  const loadItems = (sid: string) => {
+    if (!sid) { setItems([]); return; }
     setLoading(true);
-    reconciliationApi.list({ snapshotId: sid ?? snapshotId, page: 1, limit: 200 })
+    reconciliationApi.list({ snapshotId: sid, page: 1, limit: 200 })
       .then((r) => setItems(r.items ?? []))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
   };
 
   const loadStats = (sid: string) => {
-    if (!sid) return;
+    if (!sid) { setStats(null); return; }
     reconciliationApi.getStats(sid)
       .then(setStats)
       .catch(() => setStats(null));
   };
 
-  useEffect(() => { loadItems(); }, []);
+  const handleBranchChange = (id: string) => {
+    setBranchId(id);
+    setSnapshotId('');
+    setItems([]);
+    setStats(null);
+  };
 
   const handleSnapshotChange = (sid: string) => {
     setSnapshotId(sid);
@@ -108,11 +114,15 @@ export default function ReconciliationPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex flex-wrap items-end gap-4">
+              <div className="min-w-[250px] space-y-1">
+                <Label className="text-xs text-slate-500">Filial</Label>
+                <BranchSelector value={branchId} onChange={handleBranchChange} />
+              </div>
               <div className="flex-1 min-w-[280px] space-y-1">
                 <Label className="text-xs text-slate-500">Snapshot de Estoque</Label>
-                <SnapshotSelector value={snapshotId} onChange={handleSnapshotChange} />
+                <SnapshotSelector value={snapshotId} onChange={handleSnapshotChange} branchId={branchId || undefined} />
               </div>
-              <Button variant="outline" size="sm" onClick={() => loadItems(snapshotId)} disabled={loading}>
+              <Button variant="outline" size="sm" onClick={() => { loadItems(snapshotId); loadStats(snapshotId); }} disabled={loading || !snapshotId}>
                 <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Recarregar
               </Button>
               <Button onClick={handleMatching} disabled={matching || !snapshotId} size="sm">
@@ -216,8 +226,7 @@ export default function ReconciliationPage() {
                     return (
                       <TableRow
                         key={item.id}
-                        className="cursor-pointer hover:bg-slate-50"
-                        onClick={() => router.push(`/conciliacao/${item.id}`)}
+                        className="hover:bg-slate-50"
                       >
                         <TableCell className="font-mono text-xs">{item.rawSku}</TableCell>
                         <TableCell className="max-w-[220px]">
@@ -251,17 +260,8 @@ export default function ReconciliationPage() {
                             <Badge variant="success">0</Badge>
                           )}
                         </TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
+                        <TableCell>
                           <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              title="Ver detalhes"
-                              onClick={() => router.push(`/conciliacao/${item.id}`)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
                             <Button
                               variant="ghost"
                               size="icon"

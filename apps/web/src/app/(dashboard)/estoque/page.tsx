@@ -118,7 +118,7 @@ export default function StockPage() {
                 ))}
               </div>
               <p className="text-xs text-slate-400">* Campos obrigatórios. Aceita nomes em inglês (sku, description, quantity, unitCost) e português.</p>
-              <p className="text-xs text-amber-600 mt-1.5">⚠ PDF: o arquivo deve ter texto selecionável (não escaneado) e formato tabular com cabeçalho de colunas.</p>
+              <p className="text-xs text-amber-600 mt-1.5">⚠ PDF: o arquivo deve ter texto selecionável (não escaneado). Suporta o formato &quot;Relatório Posição de Estoque&quot; do RetaguardaGB automaticamente.</p>
             </div>
 
             {error && (
