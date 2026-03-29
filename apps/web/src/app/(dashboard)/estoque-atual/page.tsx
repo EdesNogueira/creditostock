@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { BranchSelector } from '@/components/branch-selector';
 import { SnapshotSelector } from '@/components/snapshot-selector';
-import { stockApi } from '@/lib/api';
+import { stockApi, api } from '@/lib/api';
 import { formatCurrency, formatNumber, formatDate, formatPercent } from '@/lib/utils';
 
 interface StockItem {
@@ -17,16 +17,22 @@ interface StockItem {
   _count?: { productMatches: number; originAllocations: number };
 }
 
+interface SnapshotStats {
+  distinctSkus: number; totalItems: number; totalValue: number;
+  matchedItems: number; reconciledPct: number;
+}
+
 export default function EstoqueAtualPage() {
   const [branchId, setBranchId] = useState('');
   const [snapshotId, setSnapshotId] = useState('');
   const [items, setItems] = useState<StockItem[]>([]);
+  const [stats, setStats] = useState<SnapshotStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
 
-  const load = useCallback(async (sid?: string) => {
+  const loadItems = useCallback(async (sid?: string) => {
     const id = sid ?? snapshotId;
     if (!id) return;
     setLoading(true);
@@ -38,16 +44,27 @@ export default function EstoqueAtualPage() {
     finally { setLoading(false); }
   }, [snapshotId, search, page]);
 
-  useEffect(() => { if (snapshotId) load(); }, [snapshotId, page]);
+  const loadStats = async (sid: string) => {
+    try {
+      const r = await api.get(`/stock/${sid}/stats`);
+      setStats(r.data);
+    } catch { setStats(null); }
+  };
 
-  const handleSnapshotChange = (sid: string) => { setSnapshotId(sid); setPage(1); load(sid); };
-  const handleSearch = () => { setPage(1); load(); };
+  useEffect(() => { if (snapshotId) loadItems(); }, [snapshotId, page]);
 
-  // Stats
-  const distinctSkus = new Set(items.map(i => i.rawSku)).size;
-  const totalValue = items.reduce((s, i) => s + parseFloat(i.totalCost || '0'), 0);
-  const matched = items.filter(i => (i._count?.productMatches ?? 0) > 0).length;
-  const reconciledPct = items.length > 0 ? (matched / items.length) * 100 : 0;
+  const handleSnapshotChange = (sid: string) => {
+    setSnapshotId(sid);
+    setPage(1);
+    loadItems(sid);
+    loadStats(sid);
+  };
+  const handleSearch = () => { setPage(1); loadItems(); };
+
+  // Use stats from full snapshot, NOT from paginated items
+  const distinctSkus = stats?.distinctSkus ?? 0;
+  const totalValue = stats?.totalValue ?? 0;
+  const reconciledPct = stats?.reconciledPct ?? 0;
 
   return (
     <div>
@@ -84,7 +101,7 @@ export default function EstoqueAtualPage() {
             </div>
             <div className="bg-white rounded-2xl border border-slate-200 p-4 text-center">
               <BarChart3 className="h-5 w-5 text-slate-500 mx-auto mb-2" />
-              <p className="text-2xl font-bold text-slate-900">{formatNumber(total)}</p>
+              <p className="text-2xl font-bold text-slate-900">{formatNumber(stats?.totalItems ?? total)}</p>
               <p className="text-xs text-slate-500">Total de Itens</p>
             </div>
             <div className="bg-white rounded-2xl border border-slate-200 p-4 text-center">

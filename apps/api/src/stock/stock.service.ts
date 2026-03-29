@@ -334,6 +334,33 @@ export class StockService {
     });
   }
 
+  async getSnapshotStats(snapshotId: string) {
+    const items = await this.prisma.stockSnapshotItem.findMany({
+      where: { snapshotId },
+      select: { productId: true, rawSku: true, totalCost: true },
+    });
+
+    const skuSet = new Set<string>();
+    let totalValue = 0;
+    for (const item of items) {
+      skuSet.add(item.productId ?? (item.rawSku.replace(/^0+/, '') || '0'));
+      totalValue += parseFloat(String(item.totalCost));
+    }
+
+    const matched = await this.prisma.productMatch.count({
+      where: { isConfirmed: true, stockSnapshotItem: { snapshotId } },
+    });
+
+    return {
+      snapshotId,
+      distinctSkus: skuSet.size,
+      totalItems: items.length,
+      totalValue,
+      matchedItems: matched,
+      reconciledPct: items.length > 0 ? (matched / items.length) * 100 : 0,
+    };
+  }
+
   async findItems(snapshotId: string, search?: string, page = 1, limit = 50) {
     const skip = (page - 1) * limit;
     const where = {

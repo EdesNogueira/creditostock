@@ -98,11 +98,17 @@ export class CalculationsService {
     let matchedInSnapshot = 0;
 
     if (latestSnapshot) {
-      const skuResult = await this.prisma.stockSnapshotItem.groupBy({
-        by: ['rawSku'],
+      // Count distinct SKUs using productId when available, normalized rawSku as fallback
+      const items = await this.prisma.stockSnapshotItem.findMany({
         where: { snapshotId: latestSnapshot.id },
+        select: { productId: true, rawSku: true },
       });
-      distinctSkus = skuResult.length;
+      const skuSet = new Set<string>();
+      for (const item of items) {
+        const key = item.productId ?? (item.rawSku.replace(/^0+/, '') || '0');
+        skuSet.add(key);
+      }
+      distinctSkus = skuSet.size;
 
       const agg = await this.prisma.stockSnapshotItem.aggregate({
         where: { snapshotId: latestSnapshot.id },

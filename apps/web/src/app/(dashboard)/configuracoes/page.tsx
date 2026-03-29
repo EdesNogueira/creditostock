@@ -101,43 +101,13 @@ export default function ConfiguracoesPage() {
                   <Label className="text-xs">Provedor</Label>
                   <select className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm" value={settings.nfeAutoImportProvider ?? 'NONE'} onChange={e => updateField('nfeAutoImportProvider', e.target.value)}>
                     <option value="NONE">Nenhum (desativado)</option>
-                    <option value="IMAP">E-mail / IMAP</option>
-                    <option value="SFTP">SFTP / Pasta monitorada</option>
-                    <option value="DFE_SEFAZ">DF-e / SEFAZ (certificado A1)</option>
+                    <option value="IMAP" disabled>E-mail / IMAP — não disponível</option>
+                    <option value="SFTP" disabled>SFTP / Pasta monitorada — não disponível</option>
+                    <option value="DFE_SEFAZ" disabled>DF-e / SEFAZ — não disponível</option>
                   </select>
+                  <p className="text-xs text-slate-400 mt-1">Importação automática será disponibilizada em breve. Por enquanto, use a importação manual.</p>
                 </div>
 
-                {settings.nfeAutoImportProvider === 'IMAP' && (
-                  <div className="space-y-3 rounded-xl bg-blue-50 border border-blue-100 p-4">
-                    <p className="text-sm font-semibold text-blue-800 flex items-center gap-2"><Mail className="h-4 w-4" /> Configuração IMAP</p>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1"><Label className="text-xs">Host</Label><Input placeholder="imap.gmail.com" value={settings.imapHost ?? ''} onChange={e => updateField('imapHost', e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Porta</Label><Input type="number" placeholder="993" value={settings.imapPort ?? ''} onChange={e => updateField('imapPort', parseInt(e.target.value))} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Usuário</Label><Input placeholder="usuario@empresa.com" value={settings.imapUser ?? ''} onChange={e => updateField('imapUser', e.target.value)} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Senha</Label><Input type="password" value={settings.imapPassword ?? ''} onChange={e => updateField('imapPassword', e.target.value)} /></div>
-                    </div>
-                    <Toggle value={settings.imapSsl !== false} onChange={v => updateField('imapSsl', v)} label="SSL/TLS" />
-                  </div>
-                )}
-
-                {settings.nfeAutoImportProvider === 'SFTP' && (
-                  <div className="rounded-xl bg-amber-50 border border-amber-100 p-4">
-                    <p className="text-sm font-semibold text-amber-800 flex items-center gap-2"><FolderSync className="h-4 w-4" /> SFTP</p>
-                    <p className="text-xs text-amber-600 mt-1">Configuração de SFTP em breve. A estrutura está preparada no backend.</p>
-                  </div>
-                )}
-
-                {settings.nfeAutoImportProvider === 'DFE_SEFAZ' && (
-                  <div className="rounded-xl bg-purple-50 border border-purple-100 p-4">
-                    <p className="text-sm font-semibold text-purple-800 flex items-center gap-2"><Shield className="h-4 w-4" /> DF-e / SEFAZ</p>
-                    <p className="text-xs text-purple-600 mt-1">Integração com certificado A1 em breve. A estrutura está preparada no backend.</p>
-                  </div>
-                )}
-
-                <div className="space-y-1">
-                  <Label className="text-xs">Intervalo de sincronização (minutos)</Label>
-                  <Input type="number" min={5} value={settings.nfeAutoImportInterval ?? 60} onChange={e => updateField('nfeAutoImportInterval', parseInt(e.target.value))} />
-                </div>
               </div>
             )}
 
@@ -225,6 +195,19 @@ export default function ConfiguracoesPage() {
           <Button onClick={() => save(settings)} disabled={saving} className="min-w-[200px]">
             {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</> : <><Settings className="mr-2 h-4 w-4" />Salvar Configurações</>}
           </Button>
+        </div>
+
+        {/* Tour */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-slate-900">Tour do Sistema</p>
+              <p className="text-xs text-slate-500 mt-0.5">Reveja o tutorial de introdução ao Lastro</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => { api.put('/users/me/onboarding/reset').then(() => window.location.reload()); }}>
+              <RefreshCw className="mr-2 h-3.5 w-3.5" /> Ver tour novamente
+            </Button>
+          </div>
         </div>
       </div>
     </div>

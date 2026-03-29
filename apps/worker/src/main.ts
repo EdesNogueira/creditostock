@@ -37,6 +37,75 @@ const dossiersQueue = new Queue('dossiers', redisOptions);
 const stripZeros = (s: string) => s.replace(/^0+/, '') || '0';
 const dec = (v: unknown): number => parseFloat(String(v ?? '0')) || 0;
 
+// ─── Settings Helper ─────────────────────────────────────────────────────────
+async function getSettingsForBranch(branchId: string) {
+  const branch = await prisma.branch.findUnique({ where: { id: branchId }, select: { companyId: true } });
+  if (!branch) return null;
+  return prisma.systemSettings.findUnique({ where: { companyId: branch.companyId } });
+}
+
+// ─── Auto-Catalog Helper ─────────────────────────────────────────────────────
+async function findOrCreateProduct(
+  sku: string,
+  opts: { ean?: string; description?: string; ncm?: string; unit?: string; companyId?: string },
+  mode: 'DISABLED' | 'CREATE_MISSING' | 'CREATE_AND_ENRICH',
+  createAliasBySku = true,
+  createAliasByEan = true,
+) {
+  const skuNorm = stripZeros(sku);
+
+  // Search by SKU, normalized SKU, EAN, alias
+  let product = await prisma.product.findFirst({
+    where: { OR: [{ sku }, { sku: skuNorm }, ...(opts.ean ? [{ ean: opts.ean }] : [])] },
+  });
+
+  if (!product && opts.ean) {
+    const alias = await prisma.productAlias.findFirst({
+      where: { OR: [{ aliasType: 'ean', aliasValue: opts.ean }, { aliasType: 'sku_normalized', aliasValue: skuNorm }] },
+      include: { product: true },
+    });
+    product = alias?.product ?? null;
+  }
+
+  if (!product && mode !== 'DISABLED') {
+    product = await prisma.product.create({
+      data: {
+        companyId: opts.companyId,
+        sku: sku,
+        ean: opts.ean || undefined,
+        description: opts.description || sku,
+        ncm: opts.ncm || undefined,
+        unit: opts.unit || 'UN',
+      },
+    });
+    console.log(`[auto-catalog] Created product: ${sku} — ${opts.description}`);
+
+    // Create aliases
+    if (createAliasBySku && skuNorm !== sku) {
+      try {
+        await prisma.productAlias.create({ data: { productId: product.id, aliasType: 'sku_normalized', aliasValue: skuNorm } });
+      } catch { /* duplicate alias */ }
+    }
+    if (createAliasByEan && opts.ean) {
+      try {
+        await prisma.productAlias.create({ data: { productId: product.id, aliasType: 'ean', aliasValue: opts.ean } });
+      } catch { /* duplicate alias */ }
+    }
+  } else if (product && mode === 'CREATE_AND_ENRICH') {
+    // Enrich: fill empty fields only
+    const updates: Record<string, string> = {};
+    if (!product.ean && opts.ean) updates.ean = opts.ean;
+    if (!product.ncm && opts.ncm) updates.ncm = opts.ncm;
+    if (!product.description && opts.description) updates.description = opts.description;
+    if (Object.keys(updates).length > 0) {
+      product = await prisma.product.update({ where: { id: product.id }, data: updates });
+      console.log(`[auto-catalog] Enriched product: ${sku} — ${JSON.stringify(updates)}`);
+    }
+  }
+
+  return product;
+}
+
 // ─── Stock Import Processor ───────────────────────────────────────────────────
 stockImportQueue.process('process-stock-import', async (job) => {
   const { snapshotId, rows } = job.data;
@@ -44,18 +113,20 @@ stockImportQueue.process('process-stock-import', async (job) => {
 
   await prisma.stockSnapshot.update({ where: { id: snapshotId }, data: { jobStatus: 'PROCESSING' } });
 
-  for (const row of rows) {
-    let product = await prisma.product.findFirst({
-      where: { OR: [{ sku: row.sku }, { sku: stripZeros(row.sku) }, ...(row.ean ? [{ ean: row.ean }] : [])] },
-    });
+  const snapshot = await prisma.stockSnapshot.findUnique({ where: { id: snapshotId }, include: { branch: true } });
+  const settings = snapshot ? await getSettingsForBranch(snapshot.branchId) : null;
+  const catalogMode = (settings?.catalogAutoModeStock as string) ?? 'CREATE_MISSING';
+  const aliasBySku = settings?.catalogAutoAliasBySku !== false;
+  const aliasByEan = settings?.catalogAutoAliasByEan !== false;
 
-    if (!product && row.ean) {
-      const alias = await prisma.productAlias.findFirst({
-        where: { aliasType: 'ean', aliasValue: row.ean },
-        include: { product: true },
-      });
-      product = alias?.product ?? null;
-    }
+  for (const row of rows) {
+    const product = await findOrCreateProduct(
+      row.sku,
+      { ean: row.ean, description: row.description, ncm: row.ncm, unit: row.unit, companyId: snapshot?.branch?.companyId },
+      catalogMode as 'DISABLED' | 'CREATE_MISSING' | 'CREATE_AND_ENRICH',
+      aliasBySku,
+      aliasByEan,
+    );
 
     await prisma.stockSnapshotItem.create({
       data: {
@@ -77,6 +148,12 @@ stockImportQueue.process('process-stock-import', async (job) => {
     where: { id: snapshotId },
     data: { jobStatus: 'DONE', totalItems: rows.length },
   });
+
+  // Auto-match after stock import if enabled
+  if (settings?.autoMatchAfterStockImport && snapshot) {
+    console.log(`[stock-import] Auto-matching enabled, enqueuing matching for ${snapshotId}`);
+    await matchingQueue.add('run-matching', { snapshotId });
+  }
 
   console.log(`[stock-import] Done: ${snapshotId}`);
 });
@@ -111,16 +188,23 @@ nfeImportQueue.process('process-nfe-items', async (job) => {
       },
     });
 
+    // Load settings for auto-catalog
+    const nfeSettings = await getSettingsForBranch(doc.branchId);
+    const nfeCatalogMode = (nfeSettings?.catalogAutoModeNfe as string) ?? 'CREATE_MISSING';
+    const nfeAliasBySku = nfeSettings?.catalogAutoAliasBySku !== false;
+    const nfeAliasByEan = nfeSettings?.catalogAutoAliasByEan !== false;
+    const branch = await prisma.branch.findUnique({ where: { id: doc.branchId }, select: { companyId: true } });
+
     for (const item of parsed.items) {
       const sku = item.cProd;
-      const skuNorm = stripZeros(sku);
 
-      let product = await prisma.product.findFirst({
-        where: { OR: [{ sku }, { sku: skuNorm }] },
-      });
-      if (!product && item.cEan) {
-        product = await prisma.product.findFirst({ where: { ean: item.cEan } });
-      }
+      const product = await findOrCreateProduct(
+        sku,
+        { ean: item.cEan ?? undefined, description: item.xProd, ncm: item.ncm, unit: item.uCom, companyId: branch?.companyId },
+        nfeCatalogMode as 'DISABLED' | 'CREATE_MISSING' | 'CREATE_AND_ENRICH',
+        nfeAliasBySku,
+        nfeAliasByEan,
+      );
 
       await prisma.nfeItem.create({
         data: {
@@ -171,6 +255,18 @@ nfeImportQueue.process('process-nfe-items', async (job) => {
 
     await prisma.nfeDocument.update({ where: { id: documentId }, data: { jobStatus: 'DONE' } });
     console.log(`[nfe-import] Done: ${documentId}, ${parsed.items.length} items (parser v${getParserVersion()})`);
+
+    // Auto-match after NF-e import if enabled
+    if (nfeSettings?.autoMatchAfterNfeImport) {
+      const latestSnapshot = await prisma.stockSnapshot.findFirst({
+        where: { branchId: doc.branchId, jobStatus: 'DONE' },
+        orderBy: { referenceDate: 'desc' },
+      });
+      if (latestSnapshot) {
+        console.log(`[nfe-import] Auto-matching enabled, enqueuing matching for snapshot ${latestSnapshot.id}`);
+        await matchingQueue.add('run-matching', { snapshotId: latestSnapshot.id });
+      }
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[nfe-import] Error processing ${documentId}:`, msg);
@@ -632,17 +728,93 @@ transitionCalcQueue.process('run-transition-calculation', async (job) => {
   }
 });
 
-// ─── Dossier Generator ───────────────────────────────────────────────────────
+// ─── Dossier Generator (real — generates JSON structure) ─────────────────────
 dossiersQueue.process('generate-dossier', async (job) => {
   const { dossierId } = job.data;
   console.log(`[dossiers] Generating dossier ${dossierId}`);
 
-  await prisma.dossier.update({
-    where: { id: dossierId },
-    data: { status: 'PENDING_REVIEW' },
-  });
+  try {
+    const dossier = await prisma.dossier.findUnique({
+      where: { id: dossierId },
+      include: { branch: { include: { company: true } } },
+    });
+    if (!dossier) return;
 
-  console.log(`[dossiers] Done: ${dossierId}`);
+    const branchId = dossier.branchId;
+
+    // Load all allocations for this branch
+    const allocations = await prisma.stockOriginAllocation.findMany({
+      where: { stockSnapshotItem: { snapshot: { branchId } } },
+      include: {
+        stockSnapshotItem: { include: { issues: { where: { status: 'OPEN' } } } },
+        nfeItem: { include: { nfeDocument: { select: { chaveAcesso: true, numero: true, dataEmissao: true, nomeEmitente: true, emitState: true } } } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // Load transition credit lots
+    const creditLots = await prisma.transitionCreditLot.findMany({
+      where: { branchId },
+      include: { taxTransitionRule: { select: { name: true, calcMethod: true } } },
+    });
+
+    // Build dossier JSON
+    const dossierData = {
+      generatedAt: new Date().toISOString(),
+      branch: { name: dossier.branch.name, cnpj: dossier.branch.cnpj, state: dossier.branch.state },
+      company: dossier.branch.company ? { name: dossier.branch.company.name, cnpj: dossier.branch.company.cnpj } : null,
+      title: dossier.title,
+      totalAllocations: allocations.length,
+      totalCreditLots: creditLots.length,
+      items: allocations.map(a => ({
+        sku: a.stockSnapshotItem.rawSku,
+        description: a.stockSnapshotItem.rawDescription,
+        qtyOrigem: Number(a.nfeItem?.qCom ?? 0),
+        qtyAproveitada: Number(a.allocatedQty),
+        custoAlocado: Number(a.allocatedCost),
+        icmsRegular: Number(a.allocatedRegularIcms),
+        icmsSt: Number(a.allocatedIcmsSt),
+        fcpSt: Number(a.allocatedFcpSt),
+        unitIcmsSt: Number(a.unitIcmsSt),
+        unitFcpSt: Number(a.unitFcpSt),
+        regime: a.sourceTaxRegime,
+        nfe: a.nfeItem?.nfeDocument ? {
+          chave: a.nfeItem.nfeDocument.chaveAcesso,
+          numero: a.nfeItem.nfeDocument.numero,
+          data: a.nfeItem.nfeDocument.dataEmissao,
+          emitente: a.nfeItem.nfeDocument.nomeEmitente,
+          uf: a.nfeItem.nfeDocument.emitState,
+        } : null,
+        fiscal: a.nfeItem ? { ncm: a.nfeItem.ncm, cest: a.nfeItem.cest, cfop: a.nfeItem.cfop, cst: a.nfeItem.cst, pIcmsSt: Number(a.nfeItem.pICMSST) } : null,
+        pendencias: a.stockSnapshotItem.issues.map(i => ({ titulo: i.title, gravidade: i.severity })),
+      })),
+      creditLots: creditLots.map(l => ({
+        creditavel: Number(l.creditableAmount),
+        naoCreditavel: Number(l.nonCreditableAmount),
+        totalSt: Number(l.totalIcmsSt),
+        totalFcp: Number(l.totalFcpSt),
+        status: l.status,
+        regra: l.taxTransitionRule?.name,
+        metodo: l.taxTransitionRule?.calcMethod,
+      })),
+    };
+
+    await prisma.dossier.update({
+      where: { id: dossierId },
+      data: {
+        status: 'PENDING_REVIEW',
+        notes: dossier.notes
+          ? `${dossier.notes}\n\n--- Dossiê gerado em ${new Date().toLocaleString('pt-BR')} com ${allocations.length} alocações e ${creditLots.length} lotes de crédito ---`
+          : `Dossiê gerado em ${new Date().toLocaleString('pt-BR')} com ${allocations.length} alocações e ${creditLots.length} lotes de crédito`,
+      },
+    });
+
+    console.log(`[dossiers] Done: ${dossierId} — ${allocations.length} items, ${creditLots.length} credit lots`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[dossiers] Error: ${dossierId}`, msg);
+    await prisma.dossier.update({ where: { id: dossierId }, data: { status: 'DRAFT', notes: `Erro na geração: ${msg}` } });
+  }
 });
 
 // ─── Error handlers ───────────────────────────────────────────────────────────

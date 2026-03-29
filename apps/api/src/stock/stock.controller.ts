@@ -19,6 +19,11 @@ export class StockController {
     return this.service.findAll(branchId);
   }
 
+  @Get(':snapshotId/stats')
+  getStats(@Param('snapshotId') snapshotId: string) {
+    return this.service.getSnapshotStats(snapshotId);
+  }
+
   @Get(':snapshotId/items')
   findItems(
     @Param('snapshotId') snapshotId: string,

@@ -7,17 +7,16 @@ import { api } from '@/lib/api';
 const ONBOARDING_VERSION = 1;
 
 const STEPS = [
-  { icon: Sparkles, title: 'Bem-vindo ao Lastro!', desc: 'O Lastro transforma seu estoque em um dossiê fiscal auditável. Vamos conhecer as principais funcionalidades em poucos passos.' },
-  { icon: LayoutDashboard, title: 'Dashboard', desc: 'Visão geral do sistema: créditos identificados, SKUs rastreados, conciliação e NF-es importadas. Tudo em um só lugar.' },
-  { icon: Package, title: 'Catálogo de Produtos', desc: 'Todos os produtos cadastrados com SKU, EAN, NCM e aliases. O sistema pode criar produtos automaticamente durante as importações.' },
-  { icon: Database, title: 'Estoque Atual', desc: 'Visualize o estoque importado, filtrado por filial e snapshot. Veja quantidades, custos e status de conciliação item a item.' },
-  { icon: FileSpreadsheet, title: 'Importar Estoque', desc: 'Faça upload de planilhas (CSV, XLSX) ou PDFs com o saldo de estoque. O sistema processa e vincula automaticamente aos produtos.' },
-  { icon: FileText, title: 'Importar NF-e', desc: 'Importe arquivos XML de notas fiscais. O sistema extrai ICMS, ICMS-ST, FCP-ST e todos os dados fiscais de cada item.' },
-  { icon: GitMerge, title: 'Conciliação', desc: 'Vincule cada item do estoque às suas NF-es de origem. O matching pode ser automático (SKU, EAN, NCM) ou manual.' },
-  { icon: Calculator, title: 'Cálculo de Transição ST', desc: 'Calcule créditos de ICMS-ST na transição de regime tributário. Configure regras por UF, NCM, CFOP e método de cálculo.' },
-  { icon: BookOpen, title: 'Ledger de Créditos', desc: 'Extrato completo dos créditos gerados, utilizados, bloqueados e ajustados. Trilha de auditoria por lote.' },
-  { icon: FolderOpen, title: 'Dossiês', desc: 'Gere documentação fiscal para protocolo de créditos. Exporte CSV ou JSON com memória de cálculo completa.' },
-  { icon: Settings, title: 'Configurações', desc: 'Configure automações: criação de catálogo, matching automático, importação de NF-e por e-mail/SFTP e notificações.' },
+  { icon: Sparkles, title: 'Bem-vindo ao Lastro!', desc: 'O Lastro transforma sua posição de estoque em um dossiê fiscal auditável com rastreabilidade nota a nota. Vamos conhecer o sistema.' },
+  { icon: FileText, title: '1. Importe suas NF-e', desc: 'Faça upload dos arquivos XML de notas fiscais. O sistema extrai automaticamente ICMS, ICMS-ST, FCP-ST e todos os dados fiscais.' },
+  { icon: FileSpreadsheet, title: '2. Importe a posição de estoque', desc: 'Faça upload de planilhas (CSV, XLSX) ou PDFs com o saldo atual do estoque. O sistema vincula cada item aos produtos do catálogo.' },
+  { icon: GitMerge, title: '3. Revise a vinculação', desc: 'O sistema vincula automaticamente cada item do estoque às suas NF-es de origem por SKU, EAN ou códigos alternativos. Você pode revisar e ajustar manualmente.' },
+  { icon: Calculator, title: '4. Execute o cálculo de crédito ST', desc: 'Configure regras por UF, NCM, CFOP e execute o cálculo proporcional de crédito ICMS-ST sobre o estoque na data de transição.' },
+  { icon: BookOpen, title: '5. Revise o extrato de créditos', desc: 'Extrato completo dos créditos gerados, utilizados, bloqueados e ajustados. Trilha de auditoria por lote de crédito.' },
+  { icon: FolderOpen, title: '6. Gere o dossiê', desc: 'Gere documentação fiscal para protocolo de créditos com CSV ou JSON contendo memória de cálculo completa e auditável.' },
+  { icon: Database, title: 'Estoque Atual', desc: 'Visualize a posição de estoque por filial e período. Veja SKUs distintos, custos e percentual de vinculação com NF-e.' },
+  { icon: Package, title: 'Catálogo', desc: 'Todos os produtos com SKU, EAN, NCM e códigos alternativos. O sistema pode criar produtos automaticamente durante as importações.' },
+  { icon: Settings, title: 'Configurações', desc: 'Configure criação automática de catálogo, vinculação automática após importação, cálculo automático e notificações.' },
 ];
 
 export function Onboarding() {
