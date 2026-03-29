@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calculator, Play, Loader2, Eye, ArrowRightLeft, Info } from 'lucide-react';
 import { Header } from '@/components/layout/header';
@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { BranchSelector } from '@/components/branch-selector';
 import { HelpTooltip } from '@/components/help-tooltip';
+import { useToast } from '@/components/ui/toast';
 import { calculationsApi, taxTransitionApi } from '@/lib/api';
-import { formatCurrency, formatDate, formatPercent } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 interface TransitionRule { id: string; name: string; calcMethod: string; stateFrom: string; isActive?: boolean; }
 interface Calculation {
@@ -18,7 +19,7 @@ interface Calculation {
   potentialCredit: string; approvedCredit: string; blockedCredit: string;
   totalIcmsStCredit: string; totalFcpStCredit: string;
   totalTransitionCreditGenerated: string; totalTransitionCreditBlocked: string; totalTransitionCreditAvailable: string;
-  reconciledPct: number; branch: { name: string; cnpj: string };
+  reconciledPct: number; jobError?: string; branch: { name: string; cnpj: string };
   transitionRule?: { name: string; calcMethod: string; stateFrom: string };
 }
 
@@ -30,6 +31,7 @@ const statusBadge = (s: string) => {
 
 export default function TransicaoCalculosPage() {
   const router = useRouter();
+  const { toast, update } = useToast();
   const [calcs, setCalcs] = useState<Calculation[]>([]);
   const [rules, setRules] = useState<TransitionRule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +40,10 @@ export default function TransicaoCalculosPage() {
   const [ruleId, setRuleId] = useState('');
   const [refDate, setRefDate] = useState(new Date().toISOString().split('T')[0]);
 
+  const load = useCallback(() => {
+    calculationsApi.list(undefined, 'ST_TRANSITION').then(setCalcs).catch(() => setCalcs([]));
+  }, []);
+
   useEffect(() => {
     Promise.all([
       calculationsApi.list(undefined, 'ST_TRANSITION').then(setCalcs).catch(() => setCalcs([])),
@@ -45,16 +51,68 @@ export default function TransicaoCalculosPage() {
     ]).finally(() => setLoading(false));
   }, []);
 
-  const load = () => { calculationsApi.list(undefined, 'ST_TRANSITION').then(setCalcs).catch(() => setCalcs([])); };
+  const pollStatus = useCallback((calcId: string, toastId: string) => {
+    const interval = setInterval(async () => {
+      try {
+        const result = await calculationsApi.get(calcId);
+        if (result.status === 'DONE') {
+          clearInterval(interval);
+          const credit = parseFloat(result.totalTransitionCreditGenerated ?? '0');
+          update(toastId, {
+            type: 'success',
+            title: 'Cálculo concluído',
+            description: `Crédito gerado: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(credit)}`,
+          });
+          load();
+          setRunning(false);
+        } else if (result.status === 'ERROR') {
+          clearInterval(interval);
+          update(toastId, {
+            type: 'error',
+            title: 'Erro no cálculo',
+            description: result.jobError ?? 'Erro desconhecido durante o processamento',
+          });
+          load();
+          setRunning(false);
+        }
+      } catch {
+        // keep polling
+      }
+    }, 3000);
+
+    // Stop after 5 minutes
+    setTimeout(() => {
+      clearInterval(interval);
+      setRunning(false);
+    }, 300000);
+  }, [load, update]);
 
   const handleRun = async () => {
-    if (!branchId || !ruleId) return alert('Selecione filial e regra de transição');
+    if (!branchId) { toast({ type: 'warning', title: 'Selecione uma filial' }); return; }
+    if (!ruleId) { toast({ type: 'warning', title: 'Selecione uma regra de transição' }); return; }
+
     setRunning(true);
+    const toastId = toast({
+      type: 'loading',
+      title: 'Calculando créditos de transição...',
+      description: 'Processando estoque, notas fiscais e regras. Isso pode levar alguns segundos.',
+    });
+
     try {
-      await calculationsApi.run({ branchId, kind: 'ST_TRANSITION', transitionRuleId: ruleId, transitionReferenceDate: refDate, mode: 'ASSISTED' });
-      alert('Cálculo de transição ST iniciado! Aguarde o processamento.');
-      setTimeout(load, 3000);
-    } catch { alert('Erro ao iniciar cálculo'); } finally { setRunning(false); }
+      const result = await calculationsApi.run({
+        branchId, kind: 'ST_TRANSITION', transitionRuleId: ruleId,
+        transitionReferenceDate: refDate, mode: 'ASSISTED',
+      });
+      pollStatus(result.calculationId, toastId);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      update(toastId, {
+        type: 'error',
+        title: 'Falha ao iniciar cálculo',
+        description: err?.response?.data?.message ?? 'Erro inesperado',
+      });
+      setRunning(false);
+    }
   };
 
   return (
@@ -92,7 +150,7 @@ export default function TransicaoCalculosPage() {
               <span>O sistema irá: (1) localizar o estoque existente na data-base, (2) identificar NF-es de entrada com ST, (3) calcular crédito proporcional por item conforme a regra selecionada, (4) gerar lotes de crédito no ledger.</span>
             </div>
             <Button onClick={handleRun} disabled={running || !branchId || !ruleId}>
-              {running ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Calculando...</> : <><Play className="mr-2 h-4 w-4" />Executar Cálculo de Transição</>}
+              {running ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Processando...</> : <><Play className="mr-2 h-4 w-4" />Executar Cálculo de Transição</>}
             </Button>
           </div>
         </div>
@@ -123,6 +181,9 @@ export default function TransicaoCalculosPage() {
                     <div className="rounded-xl bg-amber-50 p-3 text-center border border-amber-100"><p className="text-lg font-bold text-amber-700">{formatCurrency(parseFloat(c.totalFcpStCredit || '0'))}</p><p className="text-xs text-amber-600">FCP-ST</p></div>
                     <div className="rounded-xl bg-red-50 p-3 text-center border border-red-100"><p className="text-lg font-bold text-red-600">{formatCurrency(parseFloat(c.totalTransitionCreditBlocked || '0'))}</p><p className="text-xs text-red-500">Bloqueado</p></div>
                   </div>
+                )}
+                {c.status === 'ERROR' && c.jobError && (
+                  <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs text-red-700 mb-3">{c.jobError}</div>
                 )}
                 <Button variant="ghost" size="sm" className="text-xs text-blue-600" onClick={() => router.push(`/transicao-st/calculos/${c.id}`)}>
                   <Eye className="mr-1.5 h-3.5 w-3.5" /> Ver detalhes

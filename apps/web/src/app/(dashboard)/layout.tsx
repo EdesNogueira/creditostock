@@ -2,11 +2,13 @@
 import { useState } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
 import { MobileHeader } from '@/components/layout/mobile-header';
+import { ToastProvider } from '@/components/ui/toast';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
+    <ToastProvider>
     <div className="flex h-screen overflow-hidden bg-slate-50">
       {/* Desktop sidebar - part of flex flow, hidden on mobile */}
       <div className="hidden lg:flex flex-shrink-0">
@@ -35,5 +37,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
+    </ToastProvider>
   );
 }
