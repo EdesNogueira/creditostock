@@ -109,7 +109,7 @@ export const reconciliationApi = {
 
 // Calculations
 export const calculationsApi = {
-  list: (branchId?: string) => api.get('/calculations', { params: { branchId } }).then((r) => r.data),
+  list: (branchId?: string, kind?: string) => api.get('/calculations', { params: { branchId, kind } }).then((r) => r.data),
   get: (id: string) => api.get(`/calculations/${id}`).then((r) => r.data),
   run: (data: unknown) => api.post('/calculations/run', data).then((r) => r.data),
 };
@@ -138,6 +138,33 @@ export const taxRulesApi = {
   create: (data: unknown) => api.post('/tax-rules', data).then((r) => r.data),
   update: (id: string, data: unknown) => api.put(`/tax-rules/${id}`, data).then((r) => r.data),
   remove: (id: string) => api.delete(`/tax-rules/${id}`).then((r) => r.data),
+};
+
+// Tax Transition Rules
+export const taxTransitionApi = {
+  listRules: (stateFrom?: string) => api.get('/tax-transition/rules', { params: { stateFrom } }).then((r) => r.data),
+  getRule: (id: string) => api.get(`/tax-transition/rules/${id}`).then((r) => r.data),
+  createRule: (data: unknown) => api.post('/tax-transition/rules', data).then((r) => r.data),
+  updateRule: (id: string, data: unknown) => api.put(`/tax-transition/rules/${id}`, data).then((r) => r.data),
+  deleteRule: (id: string) => api.delete(`/tax-transition/rules/${id}`).then((r) => r.data),
+};
+
+// Transition Credits
+export const transitionCreditsApi = {
+  list: (params?: { branchId?: string; status?: string; calculationId?: string; page?: number; limit?: number }) =>
+    api.get('/transition-credits', { params }).then((r) => r.data),
+  get: (id: string) => api.get(`/transition-credits/${id}`).then((r) => r.data),
+  getBalance: (branchId: string) => api.get(`/transition-credits/balance/${branchId}`).then((r) => r.data),
+  adjust: (id: string, data: { amount: number; notes: string }) =>
+    api.post(`/transition-credits/${id}/adjust`, data).then((r) => r.data),
+  block: (id: string, data: { notes: string }) =>
+    api.post(`/transition-credits/${id}/block`, data).then((r) => r.data),
+};
+
+// Transition Ledger
+export const transitionLedgerApi = {
+  list: (params?: { branchId?: string; lotId?: string; entryType?: string; page?: number; limit?: number }) =>
+    api.get('/transition-ledger', { params }).then((r) => r.data),
 };
 
 // Audit

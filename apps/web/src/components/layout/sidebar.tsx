@@ -7,6 +7,7 @@ import {
   LayoutDashboard, Building2, Package, FileSpreadsheet,
   FileText, GitMerge, AlertCircle, Calculator,
   FolderOpen, History, LogOut, Scale, Users,
+  ArrowRightLeft, BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,9 @@ const navItems = [
   { href: '/calculos', icon: Calculator, label: 'Créditos' },
   { href: '/dossies', icon: FolderOpen, label: 'Dossiês' },
   { href: '/regras-fiscais', icon: Scale, label: 'Regras Fiscais' },
+  { href: '/transicao-st/regras', icon: ArrowRightLeft, label: 'Transição ST' },
+  { href: '/transicao-st/calculos', icon: Calculator, label: 'Cálculo ST' },
+  { href: '/transicao-st/ledger', icon: BookOpen, label: 'Ledger ST' },
   { href: '/auditoria', icon: History, label: 'Auditoria' },
   { href: '/usuarios', icon: Users, label: 'Usuários' },
 ];

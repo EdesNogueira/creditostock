@@ -81,6 +81,38 @@ enum AuditAction {
   REJECT
 }
 
+enum TaxRegime {
+  UNKNOWN
+  NORMAL
+  ST
+}
+
+enum CalculationKind {
+  GENERAL_ICMS
+  ST_TRANSITION
+}
+
+enum TransitionCalcMethod {
+  PROPORTIONAL_ST_ONLY
+  PROPORTIONAL_ST_PLUS_FCP
+  MANUAL_OVERRIDE
+}
+
+enum TransitionCreditStatus {
+  OPEN
+  PARTIALLY_USED
+  FULLY_USED
+  BLOCKED
+}
+
+enum LedgerEntryType {
+  GENERATED
+  MANUAL_ADJUSTMENT
+  USED
+  BLOCKED
+  REVERSED
+}
+
 // ─── Core Entities ───────────────────────────────────────────────────────────
 
 model Company {
@@ -109,11 +141,13 @@ model Branch {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  company           Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  stockSnapshots    StockSnapshot[]
-  nfeDocuments      NfeDocument[]
-  calculations      CreditCalculation[]
-  dossiers          Dossier[]
+  company               Company                      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  stockSnapshots        StockSnapshot[]
+  nfeDocuments          NfeDocument[]
+  calculations          CreditCalculation[]
+  dossiers              Dossier[]
+  transitionCreditLots  TransitionCreditLot[]
+  transitionLedger      TransitionCreditLedgerEntry[]
 
   @@map("branches")
 }
@@ -152,13 +186,16 @@ model Product {
   productMatches      ProductMatch[]
 
   @@unique([companyId, sku])
+  @@index([sku])
+  @@index([ean])
+  @@index([ncm])
   @@map("products")
 }
 
 model ProductAlias {
   id          String  @id @default(cuid())
   productId   String
-  aliasType   String  // 'sku' | 'ean' | 'description' | 'supplier_code'
+  aliasType   String
   aliasValue  String
   sourceNote  String?
 
@@ -177,13 +214,18 @@ model StockSnapshot {
   importedAt   DateTime  @default(now())
   fileName     String
   storageKey   String?
+  fileHash     String?
   totalItems   Int       @default(0)
+  parserVersion String?
+  importSource  String?
   jobStatus    JobStatus @default(QUEUED)
   jobError     String?
 
   branch  Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
   items   StockSnapshotItem[]
+  transitionCreditLots TransitionCreditLot[]
 
+  @@index([branchId])
   @@map("stock_snapshots")
 }
 
@@ -205,32 +247,46 @@ model StockSnapshotItem {
   productMatches     ProductMatch[]
   originAllocations  StockOriginAllocation[]
   issues             Issue[]
+  transitionCreditLots TransitionCreditLot[]
 
+  @@index([snapshotId])
+  @@index([rawSku])
   @@map("stock_snapshot_items")
 }
 
 // ─── NF-e ─────────────────────────────────────────────────────────────────────
 
 model NfeDocument {
-  id              String   @id @default(cuid())
-  branchId        String
-  chaveAcesso     String   @unique
-  numero          String
-  serie           String
-  dataEmissao     DateTime
-  cnpjEmitente    String
-  nomeEmitente    String
-  cnpjDestinatario String
-  valorTotal      Decimal  @db.Decimal(14, 2)
-  storageKey      String?
-  rawXml          String?  @db.Text
-  importedAt      DateTime @default(now())
-  jobStatus       JobStatus @default(QUEUED)
-  jobError        String?
+  id                String   @id @default(cuid())
+  branchId          String
+  chaveAcesso       String   @unique
+  numero            String
+  serie             String
+  dataEmissao       DateTime
+  cnpjEmitente      String
+  nomeEmitente      String
+  cnpjDestinatario  String
+  valorTotal        Decimal  @db.Decimal(14, 2)
+  emitState         String?
+  destState         String?
+  operationNature   String?
+  rawProtocolNumber String?
+  rawAdditionalInfo String?  @db.Text
+  storageKey        String?
+  rawXml            String?  @db.Text
+  xmlHash           String?
+  parserVersion     String?
+  importSource      String?
+  importedAt        DateTime @default(now())
+  jobStatus         JobStatus @default(QUEUED)
+  jobError          String?
 
   branch  Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
   items   NfeItem[]
 
+  @@index([branchId])
+  @@index([cnpjEmitente])
+  @@index([dataEmissao])
   @@map("nfe_documents")
 }
 
@@ -238,25 +294,64 @@ model NfeItem {
   id            String   @id @default(cuid())
   nfeDocumentId String
   productId     String?
+  nItem         Int?
   cProd         String
   xProd         String
   cEan          String?
   ncm           String?
+  cest          String?
   cfop          String
   uCom          String
   qCom          Decimal  @db.Decimal(14, 4)
   vUnCom        Decimal  @db.Decimal(14, 4)
   vProd         Decimal  @db.Decimal(14, 2)
-  vIcms         Decimal  @db.Decimal(14, 2)  @default(0)
-  pIcms         Decimal  @db.Decimal(8, 4)   @default(0)
+
+  // ICMS regular
+  orig          String?
   cst           String?
   csosn         String?
+  modBC         String?
+  vBC           Decimal  @db.Decimal(14, 2) @default(0)
+  pIcms         Decimal  @db.Decimal(8, 4)  @default(0)
+  vIcms         Decimal  @db.Decimal(14, 2) @default(0)
+
+  // ICMS-ST
+  modBCST       String?
+  pMVAST        Decimal  @db.Decimal(8, 4)  @default(0)
+  vBCST         Decimal  @db.Decimal(14, 2) @default(0)
+  pICMSST       Decimal  @db.Decimal(8, 4)  @default(0)
+  vICMSST       Decimal  @db.Decimal(14, 2) @default(0)
+
+  // FCP-ST
+  vBCFCPST      Decimal  @db.Decimal(14, 2) @default(0)
+  pFCPST        Decimal  @db.Decimal(8, 4)  @default(0)
+  vFCPST        Decimal  @db.Decimal(14, 2) @default(0)
+
+  // Calculated unit amounts
+  taxRegime         TaxRegime @default(UNKNOWN)
+  stApplies         Boolean   @default(false)
+  icmsUnitAmount    Decimal   @db.Decimal(14, 6) @default(0)
+  icmsStUnitAmount  Decimal   @db.Decimal(14, 6) @default(0)
+  fcpStUnitAmount   Decimal   @db.Decimal(14, 6) @default(0)
+
+  // Metadata
+  supplierOrderRef  String?
+  extIpi            String?
+  rawTaxJson        Json?
 
   nfeDocument        NfeDocument           @relation(fields: [nfeDocumentId], references: [id], onDelete: Cascade)
   product            Product?              @relation(fields: [productId], references: [id])
   productMatches     ProductMatch[]
   originAllocations  StockOriginAllocation[]
+  transitionCreditLots TransitionCreditLot[]
 
+  @@unique([nfeDocumentId, nItem])
+  @@index([cProd])
+  @@index([ncm])
+  @@index([cest])
+  @@index([cfop])
+  @@index([cst])
+  @@index([nfeDocumentId])
   @@map("nfe_items")
 }
 
@@ -285,24 +380,40 @@ model ProductMatch {
 // ─── Origin Allocation ───────────────────────────────────────────────────────
 
 model StockOriginAllocation {
-  id                  String             @id @default(cuid())
-  stockSnapshotItemId String
-  nfeItemId           String
-  strategy            AllocationStrategy @default(FIFO)
-  allocatedQty        Decimal            @db.Decimal(14, 4)
-  allocatedCost       Decimal            @db.Decimal(14, 4)
-  allocatedIcms       Decimal            @db.Decimal(14, 4)
-  isManual            Boolean            @default(false)
-  manualReason        String?
-  createdAt           DateTime           @default(now())
+  id                    String             @id @default(cuid())
+  stockSnapshotItemId   String
+  nfeItemId             String
+  strategy              AllocationStrategy @default(FIFO)
+  allocatedQty          Decimal            @db.Decimal(14, 4)
+  allocatedCost         Decimal            @db.Decimal(14, 4)
+  allocatedIcms         Decimal            @db.Decimal(14, 4)
+  isManual              Boolean            @default(false)
+  manualReason          String?
 
-  stockSnapshotItem StockSnapshotItem @relation(fields: [stockSnapshotItemId], references: [id], onDelete: Cascade)
-  nfeItem           NfeItem           @relation(fields: [nfeItemId], references: [id], onDelete: Cascade)
+  // ST-specific allocation fields
+  sourceTaxRegime       TaxRegime          @default(UNKNOWN)
+  allocatedRegularIcms  Decimal            @db.Decimal(14, 4) @default(0)
+  allocatedIcmsSt       Decimal            @db.Decimal(14, 4) @default(0)
+  allocatedFcpSt        Decimal            @db.Decimal(14, 4) @default(0)
+  unitRegularIcms       Decimal            @db.Decimal(14, 6) @default(0)
+  unitIcmsSt            Decimal            @db.Decimal(14, 6) @default(0)
+  unitFcpSt             Decimal            @db.Decimal(14, 6) @default(0)
+  taxTransitionRuleId   String?
+  calcNotes             String?
 
+  createdAt             DateTime           @default(now())
+
+  stockSnapshotItem     StockSnapshotItem  @relation(fields: [stockSnapshotItemId], references: [id], onDelete: Cascade)
+  nfeItem               NfeItem            @relation(fields: [nfeItemId], references: [id], onDelete: Cascade)
+  taxTransitionRule     TaxTransitionRule?  @relation(fields: [taxTransitionRuleId], references: [id])
+
+  @@index([stockSnapshotItemId])
+  @@index([nfeItemId])
+  @@index([taxTransitionRuleId])
   @@map("stock_origin_allocations")
 }
 
-// ─── Tax Rules ───────────────────────────────────────────────────────────────
+// ─── Tax Rules (general) ─────────────────────────────────────────────────────
 
 model TaxRule {
   id          String  @id @default(cuid())
@@ -318,26 +429,139 @@ model TaxRule {
   @@map("tax_rules")
 }
 
+// ─── Tax Transition Rules ────────────────────────────────────────────────────
+
+model TaxTransitionRule {
+  id                          String               @id @default(cuid())
+  name                        String
+  description                 String?
+  stateFrom                   String
+  stateTo                     String?
+  effectiveFrom               DateTime
+  effectiveTo                 DateTime?
+  ncmRange                    String?
+  cestList                    String?
+  cfopList                    String?
+  cstList                     String?
+  taxRegimeBefore             TaxRegime            @default(ST)
+  taxRegimeAfter              TaxRegime            @default(NORMAL)
+  calcMethod                  TransitionCalcMethod @default(PROPORTIONAL_ST_ONLY)
+  includeFcpStInCredit        Boolean              @default(false)
+  requiresExistingStockSnapshot Boolean            @default(true)
+  isActive                    Boolean              @default(true)
+  createdAt                   DateTime             @default(now())
+  updatedAt                   DateTime             @updatedAt
+
+  calculations          CreditCalculation[]
+  allocations           StockOriginAllocation[]
+  transitionCreditLots  TransitionCreditLot[]
+
+  @@index([stateFrom])
+  @@index([isActive])
+  @@map("tax_transition_rules")
+}
+
+// ─── Transition Credit Lot ───────────────────────────────────────────────────
+
+model TransitionCreditLot {
+  id                      String                 @id @default(cuid())
+  branchId                String
+  calculationId           String?
+  snapshotId              String
+  stockSnapshotItemId     String
+  nfeItemId               String
+  taxTransitionRuleId     String
+  quantityInStock         Decimal                @db.Decimal(14, 4)
+  quantityAllocatedFromNfe Decimal               @db.Decimal(14, 4)
+  unitIcmsSt              Decimal                @db.Decimal(14, 6)
+  unitFcpSt               Decimal                @db.Decimal(14, 6) @default(0)
+  totalIcmsSt             Decimal                @db.Decimal(14, 4)
+  totalFcpSt              Decimal                @db.Decimal(14, 4) @default(0)
+  creditableAmount        Decimal                @db.Decimal(14, 4)
+  nonCreditableAmount     Decimal                @db.Decimal(14, 4) @default(0)
+  status                  TransitionCreditStatus @default(OPEN)
+  rationale               String?
+  executionVersion        Int                    @default(1)
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+
+  branch              Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  calculation         CreditCalculation?  @relation(fields: [calculationId], references: [id])
+  snapshot            StockSnapshot       @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  stockSnapshotItem   StockSnapshotItem   @relation(fields: [stockSnapshotItemId], references: [id], onDelete: Cascade)
+  nfeItem             NfeItem             @relation(fields: [nfeItemId], references: [id], onDelete: Cascade)
+  taxTransitionRule   TaxTransitionRule   @relation(fields: [taxTransitionRuleId], references: [id])
+  ledgerEntries       TransitionCreditLedgerEntry[]
+
+  @@index([branchId])
+  @@index([snapshotId])
+  @@index([calculationId])
+  @@index([taxTransitionRuleId])
+  @@index([status])
+  @@map("transition_credit_lots")
+}
+
+// ─── Transition Credit Ledger ────────────────────────────────────────────────
+
+model TransitionCreditLedgerEntry {
+  id                      String          @id @default(cuid())
+  branchId                String
+  transitionCreditLotId   String
+  entryType               LedgerEntryType
+  amount                  Decimal         @db.Decimal(14, 4)
+  referenceType           String?
+  referenceId             String?
+  notes                   String?
+  executionVersion        Int             @default(1)
+  isAutoGenerated         Boolean         @default(true)
+  createdAt               DateTime        @default(now())
+
+  branch              Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  transitionCreditLot TransitionCreditLot @relation(fields: [transitionCreditLotId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+  @@index([transitionCreditLotId])
+  @@index([entryType])
+  @@map("transition_credit_ledger_entries")
+}
+
 // ─── Credit Calculation ──────────────────────────────────────────────────────
 
 model CreditCalculation {
-  id              String            @id @default(cuid())
-  branchId        String
-  mode            CalculationMode   @default(ASSISTED)
-  status          CalculationStatus @default(PENDING)
-  totalStockCost  Decimal           @db.Decimal(14, 2) @default(0)
-  totalIcmsPaid   Decimal           @db.Decimal(14, 2) @default(0)
-  potentialCredit Decimal           @db.Decimal(14, 2) @default(0)
-  approvedCredit  Decimal           @db.Decimal(14, 2) @default(0)
-  blockedCredit   Decimal           @db.Decimal(14, 2) @default(0)
-  reconciledPct   Float             @default(0)
+  id                              String            @id @default(cuid())
+  branchId                        String
+  kind                            CalculationKind   @default(GENERAL_ICMS)
+  mode                            CalculationMode   @default(ASSISTED)
+  status                          CalculationStatus @default(PENDING)
+  totalStockCost                  Decimal           @db.Decimal(14, 2) @default(0)
+  totalIcmsPaid                   Decimal           @db.Decimal(14, 2) @default(0)
+  potentialCredit                 Decimal           @db.Decimal(14, 2) @default(0)
+  approvedCredit                  Decimal           @db.Decimal(14, 2) @default(0)
+  blockedCredit                   Decimal           @db.Decimal(14, 2) @default(0)
+  reconciledPct                   Float             @default(0)
+
+  // ST Transition specific
+  transitionRuleId                String?
+  transitionReferenceDate         DateTime?
+  totalIcmsStCredit               Decimal           @db.Decimal(14, 2) @default(0)
+  totalFcpStCredit                Decimal           @db.Decimal(14, 2) @default(0)
+  totalTransitionCreditGenerated  Decimal           @db.Decimal(14, 2) @default(0)
+  totalTransitionCreditBlocked    Decimal           @db.Decimal(14, 2) @default(0)
+  totalTransitionCreditAvailable  Decimal           @db.Decimal(14, 2) @default(0)
+  executionVersion                Int               @default(1)
+
   jobError        String?
   startedAt       DateTime?
   finishedAt      DateTime?
   createdAt       DateTime          @default(now())
 
-  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch              Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  transitionRule       TaxTransitionRule?  @relation(fields: [transitionRuleId], references: [id])
+  transitionCreditLots TransitionCreditLot[]
 
+  @@index([branchId])
+  @@index([kind])
+  @@index([transitionRuleId])
   @@map("credit_calculations")
 }
 

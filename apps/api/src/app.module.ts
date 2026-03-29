@@ -16,6 +16,8 @@ import { DossiersModule } from './dossiers/dossiers.module';
 import { AuditModule } from './audit/audit.module';
 import { StorageModule } from './storage/storage.module';
 import { TaxRulesModule } from './tax-rules/tax-rules.module';
+import { TaxTransitionModule } from './tax-transition/tax-transition.module';
+import { TransitionCreditsModule } from './transition-credits/transition-credits.module';
 
 @Module({
   imports: [
@@ -61,6 +63,8 @@ import { TaxRulesModule } from './tax-rules/tax-rules.module';
     DossiersModule,
     AuditModule,
     TaxRulesModule,
+    TaxTransitionModule,
+    TransitionCreditsModule,
   ],
 })
 export class AppModule {}

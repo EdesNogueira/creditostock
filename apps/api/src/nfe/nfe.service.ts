@@ -3,16 +3,12 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
-import { XMLParser } from 'fast-xml-parser';
+import { parseNfeXml } from './parser/nfe-xml-parser';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class NfeService {
   private readonly logger = new Logger(NfeService.name);
-  private readonly xmlParser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: '@_',
-    removeNSPrefix: true,
-  });
 
   constructor(
     private readonly prisma: PrismaService,
@@ -30,65 +26,58 @@ export class NfeService {
           continue;
         }
 
-        const parsed = this.xmlParser.parse(xmlContent);
-        const nfeProc = parsed.nfeProc ?? parsed;
-        const nfe =
-          nfeProc.NFe?.infNFe ??
-          nfeProc.infNFe ??
-          nfeProc.NFe ??
-          parsed.NFe?.infNFe ??
-          parsed.NFe ??
-          parsed.infNFe;
-        if (!nfe) {
-          const topKeys = Object.keys(parsed).join(', ');
-          results.push({
-            file: file.originalname,
-            status: 'error',
-            message: `Estrutura XML NF-e não reconhecida. Elementos encontrados: ${topKeys}`,
-          });
+        let parsed;
+        try {
+          parsed = parseNfeXml(xmlContent);
+        } catch (parseErr) {
+          results.push({ file: file.originalname, status: 'error', message: `Erro ao ler XML: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}` });
           continue;
         }
 
-        const infNFe = nfe.infNFe ?? nfe;
-        const ide = infNFe.ide;
-        const emit = infNFe.emit;
-        const dest = infNFe.dest;
-        const total = infNFe.total?.ICMSTot;
-        const chave =
-          infNFe['@_Id']?.replace('NFe', '') ??
-          nfe['@_Id']?.replace('NFe', '') ??
-          nfeProc.protNFe?.infProt?.chNFe ??
-          '';
+        const h = parsed.header;
 
-        const existing = await this.prisma.nfeDocument.findUnique({ where: { chaveAcesso: chave } });
+        if (!h.chaveAcesso) {
+          results.push({ file: file.originalname, status: 'error', message: 'Chave de acesso não encontrada no XML' });
+          continue;
+        }
+
+        const existing = await this.prisma.nfeDocument.findUnique({ where: { chaveAcesso: h.chaveAcesso } });
         if (existing) {
           results.push({ file: file.originalname, status: 'duplicate', documentId: existing.id });
           continue;
         }
 
-        // Storage upload is optional - rawXml is stored in DB as primary source
+        // Storage upload is optional
         let storageKey: string | undefined;
         try {
           storageKey = this.storage.buildKey('nfe', file.originalname);
           await this.storage.upload(storageKey, file.buffer, 'application/xml');
         } catch (storageErr) {
-          this.logger.warn(`Storage upload failed for ${file.originalname} — continuing without storage: ${storageErr}`);
+          this.logger.warn(`Storage upload failed for ${file.originalname}: ${storageErr}`);
           storageKey = undefined;
         }
 
         const doc = await this.prisma.nfeDocument.create({
           data: {
             branchId,
-            chaveAcesso: chave,
-            numero: String(ide.nNF ?? ide.nNf ?? 0),
-            serie: String(ide.serie ?? 1),
-            dataEmissao: new Date(ide.dhEmi ?? ide.dEmi ?? new Date()),
-            cnpjEmitente: String(emit.CNPJ ?? emit.CPF ?? ''),
-            nomeEmitente: String(emit.xNome ?? emit.xFant ?? ''),
-            cnpjDestinatario: String(dest?.CNPJ ?? dest?.CPF ?? ''),
-            valorTotal: parseFloat(String(total?.vNF ?? 0)),
+            chaveAcesso: h.chaveAcesso,
+            numero: h.numero,
+            serie: h.serie,
+            dataEmissao: new Date(h.dataEmissao),
+            cnpjEmitente: h.cnpjEmitente,
+            nomeEmitente: h.nomeEmitente,
+            cnpjDestinatario: h.cnpjDestinatario,
+            valorTotal: h.valorTotal,
+            emitState: h.emitState || undefined,
+            destState: h.destState || undefined,
+            operationNature: h.operationNature || undefined,
+            rawProtocolNumber: h.rawProtocolNumber || undefined,
+            rawAdditionalInfo: h.rawAdditionalInfo || undefined,
             ...(storageKey ? { storageKey } : {}),
-            rawXml: file.buffer.toString('utf-8'),
+            rawXml: xmlContent,
+            xmlHash: parsed.xmlHash,
+            parserVersion: h.parserVersion,
+            importSource: 'web-upload',
             jobStatus: 'QUEUED',
           },
         });
@@ -96,8 +85,8 @@ export class NfeService {
         await this.queue.add('process-nfe-items', { documentId: doc.id });
         results.push({ file: file.originalname, status: 'queued', documentId: doc.id });
       } catch (e) {
-        this.logger.error(`Error parsing ${file.originalname}:`, e);
-        results.push({ file: file.originalname, status: 'error', message: String(e) });
+        this.logger.error(`Error importing ${file.originalname}:`, e);
+        results.push({ file: file.originalname, status: 'error', message: String(e instanceof Error ? e.message : e) });
       }
     }
     return { processed: results.length, results };
