@@ -6,7 +6,11 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Lastro — Rastreabilidade Fiscal de Estoque',
-  description: 'Plataforma de rastreabilidade fiscal de estoque e composição de créditos de ICMS',
+  description: 'Plataforma de rastreabilidade fiscal de estoque e composicao de creditos de ICMS',
+  icons: {
+    icon: '/lastro-logo.png',
+    apple: '/lastro-logo.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
