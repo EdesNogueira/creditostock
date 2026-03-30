@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   title: 'Lastro — Rastreabilidade Fiscal de Estoque',
   description: 'Plataforma de rastreabilidade fiscal de estoque e composicao de creditos de ICMS',
   icons: {
-    icon: '/lastro-logo.png',
-    apple: '/lastro-logo.png',
+    icon: '/favicon.png',
+    apple: '/favicon.png',
   },
 };
 
