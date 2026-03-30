@@ -86,7 +86,7 @@ export default function ProductsPage() {
   };
 
   const handleSave = async () => {
-    if (!form.sku || !form.description) { notify.warning('SKU e descriÃ§Ã£o sÃ£o obrigatÃ³rios'); return; }
+    if (!form.sku || !form.description) { notify.warning('SKU e descricao sao obrigatorios'); return; }
     setSaving(true);
     try {
       const data = {
@@ -142,22 +142,22 @@ export default function ProductsPage() {
   };
 
   const ALIAS_TYPE_LABELS: Record<string, string> = {
-    supplier_code: 'CÃ³d. Fornecedor',
+    supplier_code: 'Cod. Fornecedor',
     ean: 'EAN/Barras',
-    internal_code: 'CÃ³d. Interno',
+    internal_code: 'Cod. Interno',
     xml_description: 'Desc. XML',
   };
 
   return (
     <div>
-      <Header title="CatÃ¡logo de Produtos" subtitle="Gerencie produtos e seus cÃ³digos alternativos" />
+      <Header title="Catalogo de Produtos" subtitle="Gerencie produtos e seus codigos alternativos" />
       <div className="p-4 lg:p-6 space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-1 max-w-sm">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar por SKU ou descriÃ§Ã£o..."
+                placeholder="Buscar por SKU ou descricao..."
                 className="pl-9"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -167,14 +167,14 @@ export default function ProductsPage() {
             <Button onClick={() => load()} variant="outline">Buscar</Button>
           </div>
           <Button variant="outline" onClick={async () => {
-            const toastId = notify.loading('Reconstruindo catÃ¡logo...', 'Analisando dados importados');
+            const toastId = notify.loading('Reconstruindo catalogo...', 'Analisando dados importados');
             try {
               const r = await productsApi.backfill();
-              notify.update(toastId, { type: 'success', title: 'CatÃ¡logo reconstruÃ­do', description: r.message });
+              notify.update(toastId, { type: 'success', title: 'Catalogo reconstruido', description: r.message });
               load();
-            } catch { notify.update(toastId, { type: 'error', title: 'Erro ao reconstruir catÃ¡logo' }); }
+            } catch { notify.update(toastId, { type: 'error', title: 'Erro ao reconstruir catalogo' }); }
           }}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Reconstruir CatÃ¡logo
+            <RefreshCw className="mr-2 h-4 w-4" /> Reconstruir Catalogo
           </Button>
           <Button onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" /> Novo Produto
@@ -188,10 +188,10 @@ export default function ProductsPage() {
                 <TableRow>
                   <TableHead>SKU</TableHead>
                   <TableHead>EAN</TableHead>
-                  <TableHead>DescriÃ§Ã£o</TableHead>
+                  <TableHead>Descricao</TableHead>
                   <TableHead>NCM</TableHead>
                   <TableHead>Unid.</TableHead>
-                  <TableHead>CÃ³d. Alt.</TableHead>
+                  <TableHead>Cod. Alt.</TableHead>
                   <TableHead>Estoque</TableHead>
                   <TableHead>NF-e</TableHead>
                   <TableHead>Editar</TableHead>
@@ -283,7 +283,7 @@ export default function ProductsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>DescriÃ§Ã£o <span className="text-red-500">*</span></Label>
+              <Label>Descricao <span className="text-red-500">*</span></Label>
               <Input
                 placeholder="Ex: Notebook 15.6 Intel Core i5"
                 value={form.description}
@@ -292,7 +292,7 @@ export default function ProductsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>EAN / CÃ³digo de Barras</Label>
+                <Label>EAN / Codigo de Barras</Label>
                 <Input
                   placeholder="Ex: 7891234567890"
                   value={form.ean}
@@ -309,10 +309,10 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            {/* CÃ³digos alternativos (sÃ³ ao editar) */}
+            {/* Codigos alternativos (so ao editar) */}
             {editProduct && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-700 mb-2">CÃ³digos Alternativos</p>
+                <p className="text-sm font-medium text-slate-700 mb-2">Codigos Alternativos</p>
                 {editProduct.aliases.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
                     {editProduct.aliases.map((a) => (
@@ -355,7 +355,7 @@ export default function ProductsPage() {
 
             <div className="flex gap-2 pt-2">
               <Button onClick={handleSave} disabled={saving} className="flex-1">
-                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : editProduct ? 'Salvar AlteraÃ§Ãµes' : 'Criar Produto'}
+                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : editProduct ? 'Salvar Alteracoes' : 'Criar Produto'}
               </Button>
               <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
             </div>
