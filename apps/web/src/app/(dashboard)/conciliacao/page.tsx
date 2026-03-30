@@ -81,7 +81,7 @@ export default function ReconciliationPage() {
   };
 
   const handleMatching = async () => {
-    if (!snapshotId) { notify.warning('Selecione um snapshot de estoque primeiro'); return; }
+    if (!snapshotId) { notify.warning('Selecione um Posição de Estoque primeiro'); return; }
     setMatching(true);
     try {
       await reconciliationApi.runMatching(snapshotId);
@@ -110,7 +110,7 @@ export default function ReconciliationPage() {
 
   return (
     <div>
-      <Header title="Conciliação" subtitle="Vinculação de itens de estoque com NF-e — nota a nota" />
+      <Header title="Vinculação" subtitle="Vincule itens do estoque às suas NF-e de origem" />
       <div className="p-4 lg:p-6 space-y-6">
         {/* Snapshot selector */}
         <Card>
@@ -121,14 +121,14 @@ export default function ReconciliationPage() {
                 <BranchSelector value={branchId} onChange={handleBranchChange} />
               </div>
               <div className="flex-1 min-w-[280px] space-y-1">
-                <Label className="text-xs text-slate-500">Snapshot de Estoque</Label>
+                <Label className="text-xs text-slate-500">Posição de Estoque</Label>
                 <SnapshotSelector value={snapshotId} onChange={handleSnapshotChange} branchId={branchId || undefined} />
               </div>
               <Button variant="outline" size="sm" onClick={() => { loadItems(snapshotId); loadStats(snapshotId); }} disabled={loading || !snapshotId}>
                 <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Recarregar
               </Button>
               <Button onClick={handleMatching} disabled={matching || !snapshotId} size="sm">
-                {matching ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Executando...</> : <><Play className="mr-2 h-4 w-4" /> Executar Matching</>}
+                {matching ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Executando...</> : <><Play className="mr-2 h-4 w-4" /> Executar Vinculação</>}
               </Button>
             </div>
           </CardContent>
@@ -157,11 +157,11 @@ export default function ReconciliationPage() {
         {/* Progress */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Progresso da Conciliação</CardTitle>
+            <CardTitle className="text-base">Progresso da Vinculação</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between mb-2 text-sm">
-              <span>{formatNumber(matched)} de {formatNumber(total)} itens conciliados</span>
+              <span>{formatNumber(matched)} de {formatNumber(total)} itens vinculados</span>
               <span className="font-semibold text-blue-600">{formatPercent(reconciledPct)}</span>
             </div>
             <Progress value={reconciledPct} className="h-3" />
@@ -214,7 +214,7 @@ export default function ReconciliationPage() {
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-slate-400">
                       <GitMerge className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      {snapshotId ? 'Nenhum item encontrado' : 'Selecione um snapshot para ver os itens'}
+                      {snapshotId ? 'Nenhum item encontrado' : 'Selecione uma posição de estoque para ver os itens'}
                     </TableCell>
                   </TableRow>
                 ) : (

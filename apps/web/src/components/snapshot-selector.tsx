@@ -20,7 +20,7 @@ interface SnapshotSelectorProps {
   className?: string;
 }
 
-export function SnapshotSelector({ value, onChange, branchId, placeholder = 'Selecione um snapshot', className = '' }: SnapshotSelectorProps) {
+export function SnapshotSelector({ value, onChange, branchId, placeholder = 'Selecione uma posição de estoque', className = '' }: SnapshotSelectorProps) {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [loading, setLoading] = useState(true);
 

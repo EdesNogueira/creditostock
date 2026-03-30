@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { productsApi } from '@/lib/api';
 import { useNotify } from '@/lib/use-notify';
+import { RefreshCw } from 'lucide-react';
 
 interface Alias {
   id: string;
@@ -85,7 +86,7 @@ export default function ProductsPage() {
   };
 
   const handleSave = async () => {
-    if (!form.sku || !form.description) { notify.warning('SKU e descrição são obrigatórios'); return; }
+    if (!form.sku || !form.description) { notify.warning('SKU e descriÃ§Ã£o sÃ£o obrigatÃ³rios'); return; }
     setSaving(true);
     try {
       const data = {
@@ -141,22 +142,22 @@ export default function ProductsPage() {
   };
 
   const ALIAS_TYPE_LABELS: Record<string, string> = {
-    supplier_code: 'Cód. Fornecedor',
+    supplier_code: 'CÃ³d. Fornecedor',
     ean: 'EAN/Barras',
-    internal_code: 'Cód. Interno',
+    internal_code: 'CÃ³d. Interno',
     xml_description: 'Desc. XML',
   };
 
   return (
     <div>
-      <Header title="Catálogo de Produtos" subtitle="Gerencie produtos e seus aliases de identificação" />
+      <Header title="CatÃ¡logo de Produtos" subtitle="Gerencie produtos e seus cÃ³digos alternativos" />
       <div className="p-4 lg:p-6 space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-1 max-w-sm">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar por SKU ou descrição..."
+                placeholder="Buscar por SKU ou descriÃ§Ã£o..."
                 className="pl-9"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -165,6 +166,16 @@ export default function ProductsPage() {
             </div>
             <Button onClick={() => load()} variant="outline">Buscar</Button>
           </div>
+          <Button variant="outline" onClick={async () => {
+            const toastId = notify.loading('Reconstruindo catÃ¡logo...', 'Analisando dados importados');
+            try {
+              const r = await productsApi.backfill();
+              notify.update(toastId, { type: 'success', title: 'CatÃ¡logo reconstruÃ­do', description: r.message });
+              load();
+            } catch { notify.update(toastId, { type: 'error', title: 'Erro ao reconstruir catÃ¡logo' }); }
+          }}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Reconstruir CatÃ¡logo
+          </Button>
           <Button onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" /> Novo Produto
           </Button>
@@ -177,10 +188,10 @@ export default function ProductsPage() {
                 <TableRow>
                   <TableHead>SKU</TableHead>
                   <TableHead>EAN</TableHead>
-                  <TableHead>Descrição</TableHead>
+                  <TableHead>DescriÃ§Ã£o</TableHead>
                   <TableHead>NCM</TableHead>
                   <TableHead>Unid.</TableHead>
-                  <TableHead>Aliases</TableHead>
+                  <TableHead>CÃ³d. Alt.</TableHead>
                   <TableHead>Estoque</TableHead>
                   <TableHead>NF-e</TableHead>
                   <TableHead>Editar</TableHead>
@@ -205,11 +216,11 @@ export default function ProductsPage() {
                   products.map((p) => (
                     <TableRow key={p.id} className="hover:bg-slate-50">
                       <TableCell className="font-mono text-xs font-semibold">{p.sku}</TableCell>
-                      <TableCell className="font-mono text-xs text-slate-500">{p.ean ?? '—'}</TableCell>
+                      <TableCell className="font-mono text-xs text-slate-500">{p.ean ?? 'â€”'}</TableCell>
                       <TableCell className="max-w-[220px]">
                         <p className="truncate font-medium text-sm">{p.description}</p>
                       </TableCell>
-                      <TableCell className="font-mono text-xs">{p.ncm ?? '—'}</TableCell>
+                      <TableCell className="font-mono text-xs">{p.ncm ?? 'â€”'}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">{p.unit}</Badge>
                       </TableCell>
@@ -272,7 +283,7 @@ export default function ProductsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Descrição <span className="text-red-500">*</span></Label>
+              <Label>DescriÃ§Ã£o <span className="text-red-500">*</span></Label>
               <Input
                 placeholder="Ex: Notebook 15.6 Intel Core i5"
                 value={form.description}
@@ -281,7 +292,7 @@ export default function ProductsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label>EAN / Código de Barras</Label>
+                <Label>EAN / CÃ³digo de Barras</Label>
                 <Input
                   placeholder="Ex: 7891234567890"
                   value={form.ean}
@@ -298,10 +309,10 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            {/* Aliases (só ao editar) */}
+            {/* CÃ³digos alternativos (sÃ³ ao editar) */}
             {editProduct && (
               <div className="border-t pt-4">
-                <p className="text-sm font-medium text-slate-700 mb-2">Aliases de Identificação</p>
+                <p className="text-sm font-medium text-slate-700 mb-2">CÃ³digos Alternativos</p>
                 {editProduct.aliases.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-3">
                     {editProduct.aliases.map((a) => (
@@ -344,7 +355,7 @@ export default function ProductsPage() {
 
             <div className="flex gap-2 pt-2">
               <Button onClick={handleSave} disabled={saving} className="flex-1">
-                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : editProduct ? 'Salvar Alterações' : 'Criar Produto'}
+                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : editProduct ? 'Salvar AlteraÃ§Ãµes' : 'Criar Produto'}
               </Button>
               <Button variant="outline" onClick={() => setShowForm(false)}>Cancelar</Button>
             </div>

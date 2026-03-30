@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { CreateProductAliasDto } from './dto/create-product-alias.dto';
@@ -35,4 +37,10 @@ export class ProductsController {
 
   @Delete('aliases/:aliasId')
   removeAlias(@Param('aliasId') aliasId: string) { return this.service.removeAlias(aliasId); }
+
+  @Post('backfill')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @ApiOperation({ summary: 'Reconstruir catálogo a partir de dados importados (estoque e NF-e)' })
+  backfill() { return this.service.backfillFromImportedData(); }
 }

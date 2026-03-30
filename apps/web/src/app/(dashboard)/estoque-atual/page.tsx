@@ -68,8 +68,17 @@ export default function EstoqueAtualPage() {
 
   return (
     <div>
-      <Header title="Estoque Atual" subtitle="Visualize o estoque importado por snapshot e filial" />
+      <Header title="Estoque Atual" subtitle="Visualize o estoque importado por data e filial" />
       <div className="p-4 lg:p-6 space-y-5">
+        {/* Contextual help */}
+        <div className="rounded-2xl bg-blue-50 border border-blue-100 p-4 text-sm text-blue-700 flex items-start gap-3">
+          <Database className="h-5 w-5 flex-shrink-0 mt-0.5 text-blue-500" />
+          <div>
+            <p className="font-medium">Esta página mostra a posição de estoque importada em uma data específica.</p>
+            <p className="text-xs text-blue-600 mt-1">Diferente do Catálogo (que lista todos os produtos cadastrados), aqui você vê quantidades, custos e status de vinculação com NF-e para cada item do estoque na data selecionada.</p>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -78,8 +87,8 @@ export default function EstoqueAtualPage() {
               <BranchSelector value={branchId} onChange={(id) => { setBranchId(id); setSnapshotId(''); }} placeholder="Todas as filiais" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-slate-500">Snapshot de Estoque</Label>
-              <SnapshotSelector value={snapshotId} onChange={handleSnapshotChange} branchId={branchId} placeholder="Selecione um snapshot" />
+              <Label className="text-xs text-slate-500">Posição de Estoque</Label>
+              <SnapshotSelector value={snapshotId} onChange={handleSnapshotChange} branchId={branchId} placeholder="Selecione uma posição de estoque" />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -130,8 +139,8 @@ export default function EstoqueAtualPage() {
           {!snapshotId ? (
             <div className="p-12 text-center text-slate-400">
               <Database className="h-10 w-10 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">Selecione um snapshot para visualizar o estoque</p>
-              <p className="text-sm mt-1">Escolha a filial e o snapshot acima</p>
+              <p className="font-medium">Selecione uma posição de estoque para visualizar</p>
+              <p className="text-sm mt-1">Escolha a filial e a posição acima</p>
             </div>
           ) : loading ? (
             <div className="p-12 text-center text-slate-400"><Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />Carregando...</div>

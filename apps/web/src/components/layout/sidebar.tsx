@@ -111,7 +111,11 @@ export function Sidebar({ mobile, onClose }: SidebarProps) {
             <div className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon;
-                const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                // Match by exact path or child route segment (not prefix)
+                const active = pathname === item.href || (
+                  item.href !== '/dashboard' &&
+                  (pathname.startsWith(item.href + '/') || pathname.startsWith(item.href + '?'))
+                );
                 return (
                   <Link
                     key={item.href}

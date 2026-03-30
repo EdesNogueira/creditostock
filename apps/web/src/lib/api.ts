@@ -76,6 +76,7 @@ export const productsApi = {
   createAlias: (productId: string, data: unknown) =>
     api.post(`/products/${productId}/aliases`, data).then((r) => r.data),
   deleteAlias: (aliasId: string) => api.delete(`/products/aliases/${aliasId}`).then((r) => r.data),
+  backfill: () => api.post('/products/backfill').then((r) => r.data),
 };
 
 // Stock

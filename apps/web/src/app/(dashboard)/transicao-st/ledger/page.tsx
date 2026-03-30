@@ -45,7 +45,7 @@ export default function TransicaoLedgerPage() {
 
   return (
     <div>
-      <Header title="Ledger de Créditos" subtitle="Extrato completo de créditos de transição ST" />
+      <Header title="Extrato de Créditos" subtitle="Movimentações de créditos de transição ICMS-ST" />
       <div className="p-4 lg:p-6 space-y-5">
         {/* Filters */}
         <div className="flex flex-wrap items-end gap-4">
